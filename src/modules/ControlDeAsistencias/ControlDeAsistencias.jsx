@@ -10,7 +10,7 @@ const fields = [
 function ControlDeAsistencias() {
   return (
     <ModuleTemplate
-      moduleName="Control de Asistencias"
+      moduleName="Control de Asistencias by @LuisPatMtz"
       moduleOwner="ControlDeAsistencias"
       fields={fields}
     />
