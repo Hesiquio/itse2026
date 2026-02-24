@@ -19,7 +19,7 @@ const modules = [
   { name: 'Metas del Semestre', path: '/metas-del-semestre', icon: Target, description: 'Solis_Define y da seguimiento a tus metas' },
   { name: 'Inventario de Componentes', path: '/inventario-de-componentes', icon: Package, description: 'Gestiona componentes electrónicos' },
   { name: 'Contactos de Equipos', path: '/contactos-de-equipos', icon: Phone, description: 'AlexisVaqueiro_Directorio de compañeros de equipo' },
-  { name: 'Citas de Referencias APA', path: '/citas-de-referencias-apa', icon: FileText, description: 'Gestiona tus referencias bibliográficas' },
+  { name: 'Citas de Referencias pAPA', path: '/citas-de-referencias-apa', icon: FileText, description: 'Gestiona tus referencias bibliográficas' },
 ];
 
 function HomePage() {
@@ -36,7 +36,7 @@ function HomePage() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-7xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-7xl mx-auto">
           {modules.map((module, index) => {
             const Icon = module.icon;
             return (
