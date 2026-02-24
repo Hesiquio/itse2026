@@ -2,23 +2,23 @@ import { Link } from 'react-router-dom';
 import { BookOpen, Calculator, Users, CreditCard, User, Link as LinkIcon, Calendar, DollarSign, CheckSquare, Lightbulb, Lock, Clock, BookMarked, AlertCircle, Target, Package, Phone, FileText } from 'lucide-react';
 
 const modules = [
-  { name: 'Gestor de Tareas', path: '/gestor-de-tareas', icon: CheckSquare, description: 'Organiza y gestiona tus tareas académicas' },
-  { name: 'Calculadora de Promedios', path: '/calculadora-de-promedios', icon: Calculator, description: 'Calcula tus promedios académicos' },
+  { name: 'Gestor de Tareas', path: '/gestor-de-tareas', icon: CheckSquare, description: 'Jhovany_Organiza y gestiona tus tareas académicas' },
+  { name: 'Calculadora de Promedios', path: '/calculadora-de-promedios', icon: Calculator, description: 'Daniel_Calcula tus promedios académicos' },
   { name: 'Bitácora de Tutorías', path: '/bitacora-de-tutorias', icon: BookOpen, description: 'Registra tus sesiones de tutoría' },
   { name: 'Control de Préstamos', path: '/control-de-prestamos', icon: CreditCard, description: 'Alexis_Administra préstamos de materiales' },
   { name: 'Directorio de Profesores', path: '/directorio-de-profesores', icon: User, description: 'Información de contacto de profesores' },
   { name: 'Repositorio de Enlaces', path: '/repositorio-de-enlaces', icon: LinkIcon, description: 'Guarda enlaces útiles para tus estudios' },
   { name: 'Planificador de Exámenes', path: '/planificador-de-examenes', icon: Calendar, description: 'Planifica tus fechas de examen' },
-  { name: 'Registro de Gastos', path: '/registro-de-gastos', icon: DollarSign, description: 'Controla tus gastos estudiantiles' },
+  { name: 'Registro de Gastos', path: '/registro-de-gastos', icon: DollarSign, description: 'Mayra_Controla tus gastos estudiantiles' },
   { name: 'Control de Asistencias', path: '/control-de-asistencias', icon: CheckSquare, description: 'LuisPat_Registra tu asistencia a clases' },
   { name: 'Ideas para Proyectos', path: '/ideas-para-proyectos', icon: Lightbulb, description: 'Sergio_Guarda ideas para futuros proyectos' },
   { name: 'Gestor de Contraseñas Simulado', path: '/gestor-de-contrasenas-simulado', icon: Lock, description: 'Jorge_Administra tus credenciales de forma segura' },
-  { name: 'Horario de Laboratorio', path: '/horario-de-laboratorio', icon: Clock, description: 'Gestiona tus horarios de laboratorio' },
-  { name: 'Lista de Lecturas', path: '/lista-de-lecturas', icon: BookMarked, description: 'Organiza tus lecturas pendientes' },
-  { name: 'Diario de Errores', path: '/diario-de-errores', icon: AlertCircle, description: 'Documenta errores y soluciones' },
-  { name: 'Metas del Semestre', path: '/metas-del-semestre', icon: Target, description: 'Define y da seguimiento a tus metas' },
+  { name: 'Horario de Laboratorio', path: '/horario-de-laboratorio', icon: Clock, description: 'Adrel_Gestiona tus horarios de laboratorio' },
+  { name: 'Lista de Lecturas', path: '/lista-de-lecturas', icon: BookMarked, description: 'Sheyla_Organiza tus lecturas pendientes' },
+  { name: 'Diario de Errores', path: '/diario-de-errores', icon: AlertCircle, description: 'Adrel_Documenta errores y soluciones' },
+  { name: 'Metas del Semestre', path: '/metas-del-semestre', icon: Target, description: 'Solis_Define y da seguimiento a tus metas' },
   { name: 'Inventario de Componentes', path: '/inventario-de-componentes', icon: Package, description: 'Gestiona componentes electrónicos' },
-  { name: 'Contactos de Equipos', path: '/contactos-de-equipos', icon: Phone, description: 'Directorio de compañeros de equipo' },
+  { name: 'Contactos de Equipos', path: '/contactos-de-equipos', icon: Phone, description: 'AlexisVaqueiro_Directorio de compañeros de equipo' },
   { name: 'Citas de Referencias APA', path: '/citas-de-referencias-apa', icon: FileText, description: 'Gestiona tus referencias bibliográficas' },
 ];
 
