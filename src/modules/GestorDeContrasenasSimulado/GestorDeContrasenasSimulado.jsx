@@ -1,43 +1,54 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useModuleLogic } from './useModuleLogic';
-import { Shield, Trash2, Eye, EyeOff, Plus, Copy, Check, Lock } from 'lucide-react';
+import { Shield, Trash2, Eye, EyeOff, Plus, Copy, Check, Lock, Key } from 'lucide-react';
 import CryptoJS from 'crypto-js';
 
-// Clave secreta para cifrar (en un proyecto real usarías variables de entorno .env)
 const SECRET_KEY = "itse_escarcega_2026_security_key";
 
 function GestorDeContrasenasSimulado() {
   const { items, loading, addData, deleteData } = useModuleLogic('GestorDeContrasenasSimulado');
   
   const [newEntry, setNewEntry] = useState({ servicio: '', usuario: '', password: '' });
+  const [longitud, setLongitud] = useState(12); // Estado para la barra de longitud
   const [showPass, setShowPass] = useState({});
   const [copiedId, setCopiedId] = useState(null);
 
-  // --- LÓGICA DE SEGURIDAD ---
+  // --- LÓGICA DE GENERACIÓN Y SEGURIDAD ---
 
   const generarPass = () => {
     const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+";
     let password = "";
-    for (let i = 0; i < 16; i++) {
+    for (let i = 0; i < longitud; i++) {
       password += charset.charAt(Math.floor(Math.random() * charset.length));
     }
-    // Al hacer clic en el texto, se actualiza el campo automáticamente
     setNewEntry({ ...newEntry, password: password });
+  };
+
+  // Evalúa la fuerza de la contraseña (0 a 100)
+  const calcularFuerza = (pass) => {
+    if (!pass) return 0;
+    let fuerza = 0;
+    if (pass.length > 8) fuerza += 25;
+    if (pass.length > 12) fuerza += 25;
+    if (/[A-Z]/.test(pass)) fuerza += 25;
+    if (/[!@#$%^&*()_+]/.test(pass)) fuerza += 25;
+    return fuerza;
+  };
+
+  const fuerzaColor = () => {
+    const score = calcularFuerza(newEntry.password);
+    if (score <= 25) return 'bg-red-500';
+    if (score <= 50) return 'bg-orange-500';
+    if (score <= 75) return 'bg-yellow-500';
+    return 'bg-green-500';
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!newEntry.servicio || !newEntry.password) return alert("Llena los campos");
 
-    // CIFRADO: Antes de enviar a Supabase, convertimos la contraseña en un hash ilegible
     const encryptedPassword = CryptoJS.AES.encrypt(newEntry.password, SECRET_KEY).toString();
-    
-    const dataToSave = {
-      ...newEntry,
-      password: encryptedPassword
-    };
-
-    addData(dataToSave);
+    addData({ ...newEntry, password: encryptedPassword });
     setNewEntry({ servicio: '', usuario: '', password: '' });
   };
 
@@ -45,104 +56,114 @@ function GestorDeContrasenasSimulado() {
     try {
       const bytes = CryptoJS.AES.decrypt(cipherText, SECRET_KEY);
       return bytes.toString(CryptoJS.enc.Utf8);
-    } catch (e) {
-      return "Error de cifrado";
-    }
-  };
-
-  const copiarPortapapeles = (textoCifrado, id) => {
-    const textoClaro = descifrarPassword(textoCifrado);
-    navigator.clipboard.writeText(textoClaro);
-    setCopiedId(id);
-    setTimeout(() => setCopiedId(null), 2000);
+    } catch (e) { return "Error"; }
   };
 
   return (
-    <div className="max-w-4xl mx-auto p-6 bg-white min-h-screen">
+    <div className="max-w-4xl mx-auto p-6 bg-white min-h-screen font-sans">
       <header className="flex items-center gap-3 mb-8 border-b pb-4">
-        <Shield className="text-blue-600" size={28} />
-        <h1 className="text-2xl font-bold text-gray-800">PassMan</h1>
+        <div className="bg-blue-600 p-2 rounded-xl text-white">
+          <Shield size={28} />
+        </div>
+        <div>
+          <h1 className="text-2xl font-bold text-gray-800">Caja Fuerte Digital</h1>
+          <p className="text-xs text-gray-400 font-medium">ITSE 2026 - Cifrado AES-256</p>
+        </div>
       </header>
 
-      {/* Formulario con Generador Interactivo */}
-      <form onSubmit={handleSubmit} className="bg-gray-50 p-6 rounded-2xl border mb-10 shadow-sm">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <input 
-            placeholder="Servicio (ej: Google, Netflix)"
-            className="p-3 border rounded-xl outline-none focus:ring-2 focus:ring-blue-500"
-            value={newEntry.servicio}
-            onChange={e => setNewEntry({...newEntry, servicio: e.target.value})}
-          />
-          <input 
-            placeholder="Usuario / Correo"
-            className="p-3 border rounded-xl outline-none focus:ring-2 focus:ring-blue-500"
-            value={newEntry.usuario}
-            onChange={e => setNewEntry({...newEntry, usuario: e.target.value})}
-          />
-          
-          <div className="md:col-span-2">
-            <div className="flex justify-between mb-1 px-1">
-              <label className="text-xs font-bold text-gray-500 uppercase">Contraseña</label>
-              <span 
-                onClick={generarPass}
-                className="text-xs italic text-blue-600 cursor-pointer hover:underline select-none"
-              >
+      <form onSubmit={handleSubmit} className="bg-gray-50 p-6 rounded-3xl border shadow-sm mb-10">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="space-y-4">
+            <input 
+              placeholder="Nombre del Servicio (ej: Facebook)"
+              className="w-full p-3 border rounded-xl outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+              value={newEntry.servicio}
+              onChange={e => setNewEntry({...newEntry, servicio: e.target.value})}
+            />
+            <input 
+              placeholder="Usuario o Correo"
+              className="w-full p-3 border rounded-xl outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+              value={newEntry.usuario}
+              onChange={e => setNewEntry({...newEntry, usuario: e.target.value})}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <div className="flex justify-between items-center">
+              <label className="text-xs font-bold text-gray-400 uppercase">Longitud: {longitud}</label>
+              <span onClick={generarPass} className="text-xs italic text-blue-600 cursor-pointer hover:underline">
                 ¿Generar contraseña segura?
               </span>
             </div>
+            
+            {/* BARRA DE LONGITUD */}
+            <input 
+              type="range" min="6" max="16" step="1"
+              value={longitud}
+              onChange={(e) => setLongitud(e.target.value)}
+              className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
+            />
+
             <input 
               type="text" 
               placeholder="Contraseña"
-              className="w-full p-3 border rounded-xl outline-none focus:ring-2 focus:ring-blue-500 font-mono"
+              className="w-full p-3 border rounded-xl outline-none focus:ring-2 focus:ring-blue-500 font-mono bg-white"
               value={newEntry.password}
               onChange={e => setNewEntry({...newEntry, password: e.target.value})}
             />
+
+            {/* MEDIDOR DE FUERZA */}
+            <div className="w-full bg-gray-200 h-1.5 rounded-full mt-2 overflow-hidden">
+              <div 
+                className={`h-full transition-all duration-500 ${fuerzaColor()}`} 
+                style={{ width: `${calcularFuerza(newEntry.password)}%` }}
+              ></div>
+            </div>
           </div>
         </div>
-        <button type="submit" className="mt-4 w-full bg-blue-600 text-white p-3 rounded-xl font-bold flex justify-center gap-2 hover:bg-blue-700 transition-all">
-          <Plus size={20} /> Guardar Credenciales
+
+        <button type="submit" className="mt-6 w-full bg-blue-600 text-white p-4 rounded-2xl font-bold flex justify-center gap-2 hover:bg-blue-700 shadow-lg shadow-blue-200 transition-all">
+          <Plus size={20} /> Guardar con Cifrado AES
         </button>
       </form>
 
-      {/* Lista Estilo Google con Iconos Automáticos */}
-      <div className="space-y-3">
-        <h2 className="text-sm font-bold text-gray-400 uppercase ml-2">Tus cuentas cifradas</h2>
+      {/* LISTA DE CONTRASEÑAS */}
+      <div className="space-y-4">
+        <h2 className="text-sm font-bold text-gray-400 uppercase tracking-widest ml-2">Cuentas Almacenadas</h2>
         {items.map((item) => {
-          // Lógica de iconos automáticos basada en el nombre del servicio
           const domain = item.content.servicio.toLowerCase().replace(/\s+/g, '') + ".com";
-          const faviconUrl = `https://www.google.com/s2/favicons?domain=${domain}&sz=128`;
-
           return (
-            <div key={item.id} className="flex items-center justify-between p-4 border rounded-2xl hover:bg-gray-50 transition-all group">
+            <div key={item.id} className="flex items-center justify-between p-5 border rounded-3xl hover:shadow-md transition-all bg-white group">
               <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-full border bg-white flex items-center justify-center overflow-hidden">
+                <div className="w-12 h-12 rounded-2xl border bg-gray-50 flex items-center justify-center overflow-hidden">
                   <img 
-                    src={faviconUrl} 
-                    alt="logo" 
-                    className="w-7 h-7 object-contain"
+                    src={`https://www.google.com/s2/favicons?domain=${domain}&sz=128`} 
+                    alt="" className="w-7 h-7 object-contain"
                     onError={(e) => { e.target.src = "https://cdn-icons-png.flaticon.com/512/2092/2092663.png"; }}
                   />
                 </div>
                 <div>
-                  <h3 className="font-bold text-gray-800">{item.content.servicio}</h3>
-                  <p className="text-sm text-gray-500">{item.content.usuario}</p>
+                  <h3 className="font-bold text-gray-800 leading-none">{item.content.servicio}</h3>
+                  <p className="text-sm text-gray-400 mt-1">{item.content.usuario}</p>
                 </div>
               </div>
 
-              <div className="flex items-center gap-4">
-                <div className="text-right hidden sm:block">
-                  <p className="text-xs text-gray-400 font-mono">
-                    {showPass[item.id] ? descifrarPassword(item.content.password) : '••••••••••••'}
-                  </p>
+              <div className="flex items-center gap-2">
+                <div className="mr-4 hidden md:block text-right">
+                   <p className="font-mono text-sm text-gray-300">
+                     {showPass[item.id] ? descifrarPassword(item.content.password) : '••••••••••••'}
+                   </p>
                 </div>
-                
-                <div className="flex gap-1">
-                  <button onClick={() => setShowPass({...showPass, [item.id]: !showPass[item.id]})} className="p-2 text-gray-400 hover:text-blue-600"><Eye size={18} /></button>
-                  <button onClick={() => copiarPortapapeles(item.content.password, item.id)} className="p-2 text-gray-400 hover:text-green-600">
-                    {copiedId === item.id ? <Check size={18} /> : <Copy size={18} />}
-                  </button>
-                  <button onClick={() => deleteData(item.id)} className="p-2 text-gray-400 hover:text-red-600"><Trash2 size={18} /></button>
-                </div>
+                <button onClick={() => setShowPass({...showPass, [item.id]: !showPass[item.id]})} className="p-2 hover:bg-blue-50 rounded-xl text-gray-400 hover:text-blue-600"><Eye size={20}/></button>
+                <button onClick={() => {
+                  const p = descifrarPassword(item.content.password);
+                  navigator.clipboard.writeText(p);
+                  setCopiedId(item.id);
+                  setTimeout(()=>setCopiedId(null), 2000);
+                }} className="p-2 hover:bg-green-50 rounded-xl text-gray-400 hover:text-green-600">
+                  {copiedId === item.id ? <Check size={20}/> : <Copy size={20}/>}
+                </button>
+                <button onClick={() => deleteData(item.id)} className="p-2 hover:bg-red-50 rounded-xl text-gray-400 hover:text-red-600"><Trash2 size={20}/></button>
               </div>
             </div>
           );
