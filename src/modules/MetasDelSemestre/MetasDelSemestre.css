@@ -1,0 +1,310 @@
+/* Rediseño Soft Premium y Modo Dual para Metas del Semestre */
+
+.metas-module-container {
+    --metas-radius-lg: 24px;
+    --metas-radius-md: 12px;
+    --metas-shadow-soft: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+    --metas-transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+    /* Paleta Inspirada en Tandem */
+    --metas-clr-purple: #6366f1;
+    --metas-clr-indigo: #4f46e5;
+    --metas-clr-amber: #f59e0b;
+    --metas-clr-lavender: #f3f4ff;
+}
+
+/* Variables de Tema Claro (Default) */
+.metas-module-container.light {
+    --metas-bg-page: #f8faff;
+    --metas-bg-card: #ffffff;
+    --metas-text-main: #1e293b;
+    --metas-text-muted: #64748b;
+    --metas-border: #e2e8f0;
+    --metas-input-bg: #ffffff;
+    --metas-header-gradient: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+}
+
+/* Variables de Tema Oscuro */
+.metas-module-container.dark {
+    --metas-bg-page: #0f172a;
+    --metas-bg-card: #1e293b;
+    --metas-text-main: #f8fafc;
+    --metas-text-muted: #94a3b8;
+    --metas-border: #334155;
+    --metas-input-bg: #0f172a;
+    --metas-header-gradient: linear-gradient(135deg, #818cf8 0%, #c084fc 100%);
+}
+
+.metas-module-container {
+    min-height: 100vh;
+    background-color: var(--metas-bg-page);
+    color: var(--metas-text-main);
+    font-family: 'Outfit', 'Inter', sans-serif;
+    transition: background-color 0.5s ease;
+    padding-bottom: 3rem;
+}
+
+/* Overrides Globales del Template */
+.metas-module-container .min-h-screen.bg-gray-50 {
+    background: transparent !important;
+}
+
+/* Cards Estilo Tandem */
+.metas-module-container .bg-white {
+    background-color: var(--metas-bg-card) !important;
+    border: 1px solid var(--metas-border) !important;
+    border-radius: var(--metas-radius-lg) !important;
+    box-shadow: var(--metas-shadow-soft) !important;
+    padding: 2rem !important;
+    margin-bottom: 2rem;
+}
+
+/* Encabezados */
+.metas-module-container h1 {
+    font-size: 2.5rem !important;
+    font-weight: 800 !important;
+    background: var(--metas-header-gradient);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 1.5rem !important;
+}
+
+/* Botones con Bordes Suaves */
+.metas-module-container button.bg-blue-600 {
+    background: var(--metas-clr-purple) !important;
+    border-radius: var(--metas-radius-md) !important;
+    padding: 0.75rem 1.5rem !important;
+    font-weight: 600 !important;
+    box-shadow: 0 4px 15px rgba(99, 102, 241, 0.2) !important;
+    transition: var(--metas-transition) !important;
+}
+
+.metas-module-container button.bg-blue-600:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(99, 102, 241, 0.3) !important;
+    filter: brightness(1.1);
+}
+
+/* Barra de Progreso Visual */
+.metas-progress-track {
+    width: 100%;
+    height: 12px;
+    background-color: var(--metas-border);
+    border-radius: 6px;
+    overflow: hidden;
+    margin-top: 8px;
+    cursor: pointer;
+    transition: var(--metas-transition);
+}
+
+.metas-progress-track:hover {
+    filter: brightness(0.9);
+    transform: scaleY(1.1);
+}
+
+.dark .metas-progress-track:hover {
+    filter: brightness(1.1);
+}
+
+.metas-progress-bar {
+    height: 100%;
+    border-radius: 5px;
+    transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Colores de Progreso Dinámicos */
+.progress-low {
+    background: linear-gradient(90deg, #ef4444, #f87171);
+}
+
+.progress-mid {
+    background: linear-gradient(90deg, #f59e0b, #fbbf24);
+}
+
+.progress-high {
+    background: linear-gradient(90deg, #10b981, #34d399);
+}
+
+/* Switch de Tema */
+.theme-toggle-btn {
+    position: fixed;
+    bottom: 2rem;
+    right: 2rem;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background: var(--metas-clr-purple);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+    cursor: pointer;
+    z-index: 100;
+    transition: var(--metas-transition);
+}
+
+.theme-toggle-btn:hover {
+    transform: rotate(30deg) scale(1.1);
+}
+
+/* Inputs Premium */
+.metas-module-container input,
+.metas-module-container select,
+.metas-module-container textarea {
+    background-color: var(--metas-input-bg) !important;
+    border: 2px solid var(--metas-border) !important;
+    color: var(--metas-text-main) !important;
+    border-radius: var(--metas-radius-md) !important;
+    padding: 0.75rem 1rem !important;
+    transition: var(--metas-transition) !important;
+}
+
+.metas-module-container input:focus,
+.metas-module-container select:focus,
+.metas-module-container textarea:focus {
+    border-color: var(--metas-clr-purple) !important;
+    box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1) !important;
+}
+
+/* Lista de Metas */
+.metas-item-card {
+    border: 1px solid var(--metas-border);
+    background-color: var(--metas-bg-card);
+    border-radius: var(--metas-radius-md);
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    transition: var(--metas-transition);
+}
+
+.metas-item-card:hover {
+    transform: translateX(5px);
+    border-color: var(--metas-clr-purple);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+}
+
+.metas-label {
+    font-weight: 700;
+    color: var(--metas-clr-purple);
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    display: block;
+    margin-bottom: 0.25rem;
+}
+
+/* Badges Semánticos (Prioridad y Estado) */
+.metas-badge {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-align: center;
+    transition: var(--metas-transition);
+    cursor: pointer;
+    user-select: none;
+}
+
+.metas-badge:hover {
+    filter: brightness(0.9);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.dark .metas-badge:hover {
+    filter: brightness(1.2);
+}
+
+/* Colores de Prioridad (Matriz Eisenhower) */
+.priority-urgent-urgent {
+    background-color: #fee2e2;
+    color: #b91c1c;
+}
+
+.dark .priority-urgent-urgent {
+    background-color: rgba(220, 38, 38, 0.2);
+    color: #f87171;
+}
+
+.priority-nonurgent-important {
+    background-color: #fef3c7;
+    color: #92400e;
+}
+
+.dark .priority-nonurgent-important {
+    background-color: rgba(217, 119, 6, 0.2);
+    color: #fbbf24;
+}
+
+.priority-urgent-nonimportant {
+    background-color: #dcfce7;
+    color: #166534;
+}
+
+.dark .priority-urgent-nonimportant {
+    background-color: rgba(22, 163, 74, 0.2);
+    color: #4ade80;
+}
+
+.priority-nonurgent-nonimportant {
+    background-color: #dbeafe;
+    color: #1e40af;
+}
+
+.dark .priority-nonurgent-nonimportant {
+    background-color: rgba(37, 99, 235, 0.2);
+    color: #60a5fa;
+}
+
+/* Colores de Estado */
+.status-ideacion {
+    background-color: #f3e8ff;
+    color: #6b21a8;
+}
+
+.dark .status-ideacion {
+    background-color: rgba(147, 51, 234, 0.2);
+    color: #c084fc;
+}
+
+.status-progreso {
+    background-color: #e0f2fe;
+    color: #0369a1;
+}
+
+.dark .status-progreso {
+    background-color: rgba(14, 165, 233, 0.2);
+    color: #7dd3fc;
+}
+
+.status-verificacion {
+    background-color: #ffedd5;
+    color: #9a3412;
+}
+
+.dark .status-verificacion {
+    background-color: rgba(245, 158, 11, 0.2);
+    color: #fbbf24;
+}
+
+.status-completado {
+    background-color: #d1fae5;
+    color: #065f46;
+}
+
+.dark .status-completado {
+    background-color: rgba(16, 185, 129, 0.2);
+    color: #34d399;
+}
+
+.status-pospuesto {
+    background-color: #f1f5f9;
+    color: #475569;
+}
+
+.dark .status-pospuesto {
+    background-color: rgba(148, 163, 184, 0.2);
+    color: #94a3b8;
+}
