@@ -123,8 +123,9 @@ function ControlDePrestamos() {
   };
 
   const toggleStatus = useCallback(async (item) => {
-    const newStatus = item.content?.estado === 'Prestado' ? 'Devuelto' : 'Prestado';
-    const newContent = { ...item.content, estado: newStatus };
+    const content = item.content || {};
+    const newStatus = content.estado === 'Prestado' ? 'Devuelto' : 'Prestado';
+    const newContent = { ...content, estado: newStatus };
 
     // Si se marca como devuelto hoy, actualizamos la fecha de devolución automáticamente
     if (newStatus === 'Devuelto') {
@@ -165,7 +166,7 @@ function ControlDePrestamos() {
 
   const handleEdit = (item) => {
     setEditingItem(item);
-    setFormData(item.content);
+    setFormData(item.content || INITIAL_FORM_STATE);
     setShowForm(true);
   };
 

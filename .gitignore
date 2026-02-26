@@ -21,3 +21,4 @@ dist-ssr
 *.sln
 *.sw?
 .env
+src/modules/ControlDePrestamos/EXPLICACION_TECNICA_JSONB.md
