@@ -21,13 +21,24 @@ import {
 } from 'lucide-react';
 
 const MODULE_OWNER = 'ControlDePrestamos';
+
 const INITIAL_FORM_STATE = {
   articulo: '',
   persona: '',
   fecha_prestamo: new Date().toISOString().split('T')[0],
   fecha_devolucion: '',
+  hora_limite: '14:00',
   estado: 'Prestado',
 };
+
+const QUICK_DATES = [
+  { label: '+3 días', days: 3 },
+  { label: '+1 sem', days: 7 },
+  { label: '+15 días', days: 15 },
+  { label: '+1 mes', days: 30 }
+];
+
+const QUICK_HOURS = ['10:00', '14:00', '16:00', '18:00'];
 
 function ControlDePrestamos() {
   const [items, setItems] = useState([]);
@@ -39,6 +50,7 @@ function ControlDePrestamos() {
   const [formData, setFormData] = useState(INITIAL_FORM_STATE);
   const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
   const [confirmDialog, setConfirmDialog] = useState({ show: false, id: null });
+  const [isScrolled, setIsScrolled] = useState(false);
 
   const showNotification = useCallback((message, type = 'success') => {
     setToast({ show: true, message, type });
@@ -49,6 +61,12 @@ function ControlDePrestamos() {
 
   useEffect(() => {
     fetchData();
+
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 80);
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
   // ── CRUD ──────────────────────────────────────────────
@@ -187,6 +205,44 @@ function ControlDePrestamos() {
     setFormData({ ...formData, [e.target.name]: value });
   };
 
+  const setQuickDate = (name, daysToAdd) => {
+    const date = new Date();
+    date.setDate(date.getDate() + daysToAdd);
+    const dateString = date.toISOString().split('T')[0];
+
+    if (name === 'fecha_devolucion' && dateString < formData.fecha_prestamo) {
+      showNotification('La fecha no puede ser anterior al préstamo', 'error');
+      return;
+    }
+
+    setFormData({ ...formData, [name]: dateString });
+  };
+
+  const extendLoan = useCallback(async (item, days) => {
+    const currentContent = item.content || {};
+    const baseDateString = currentContent.fecha_devolucion || currentContent.fecha_prestamo || new Date().toISOString().split('T')[0];
+
+    const baseDate = new Date(baseDateString + 'T00:00:00');
+    baseDate.setDate(baseDate.getDate() + days);
+
+    const newDateString = baseDate.toISOString().split('T')[0];
+    const newContent = { ...currentContent, fecha_devolucion: newDateString };
+
+    try {
+      const { error } = await supabase
+        .from('student_modules')
+        .update({ content: newContent })
+        .eq('id', item.id);
+
+      if (error) throw error;
+      setItems(prev => prev.map(i => i.id === item.id ? { ...i, content: newContent } : i));
+      showNotification(`Préstamo extendido hasta el ${newDateString}`);
+    } catch (error) {
+      console.error('Error extending loan:', error.message);
+      showNotification('Error al extender el préstamo', 'error');
+    }
+  }, [showNotification]);
+
   // ── Modal Scroll Lock ──────────────────────────────────
   useEffect(() => {
     if (showForm) {
@@ -260,7 +316,8 @@ function ControlDePrestamos() {
   return (
     <div className="min-h-screen bg-[#F8FAFC]">
       {/* ── Dynamic Hero Header ── */}
-      <div className="bg-gradient-to-br from-slate-900 via-indigo-950 to-blue-900 text-white pb-32 pt-12 hero-surface relative overflow-hidden">
+      <div className={`bg-gradient-to-br from-slate-900 via-indigo-950 to-blue-900 text-white pb-32 pt-12 hero-surface relative overflow-hidden transition-opacity duration-500 ${isScrolled ? 'opacity-40 pointer-events-none' : 'opacity-100'
+        }`}>
         <div className="container mx-auto px-4 max-w-5xl">
           <Link
             to="/"
@@ -361,6 +418,22 @@ function ControlDePrestamos() {
                       className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium text-gray-700"
                       required
                     />
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setQuickDate('fecha_prestamo', 0)}
+                        className="text-[10px] font-black uppercase tracking-wider px-2 py-1 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors"
+                      >
+                        Hoy
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setQuickDate('fecha_prestamo', -1)}
+                        className="text-[10px] font-black uppercase tracking-wider px-2 py-1 bg-slate-50 text-slate-500 rounded-lg hover:bg-slate-100 transition-colors"
+                      >
+                        Ayer
+                      </button>
+                    </div>
                   </div>
 
                   <div className="space-y-2">
@@ -374,6 +447,48 @@ function ControlDePrestamos() {
                       onChange={handleChange}
                       className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium text-gray-700"
                     />
+                    <div className="flex flex-wrap gap-2">
+                      {QUICK_DATES.map((btn) => (
+                        <button
+                          key={btn.label}
+                          type="button"
+                          onClick={() => setQuickDate('fecha_devolucion', btn.days)}
+                          className="text-[10px] font-black uppercase tracking-wider px-2 py-1 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-100 transition-colors"
+                        >
+                          {btn.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="space-y-2 md:col-span-2">
+                    <label className="text-sm font-bold text-gray-500 uppercase tracking-wider flex items-center gap-2">
+                      <Clock className="w-4 h-4" /> Hora Límite de Devolución
+                    </label>
+                    <div className="flex flex-col md:flex-row gap-4">
+                      <input
+                        type="time"
+                        name="hora_limite"
+                        value={formData.hora_limite}
+                        onChange={handleChange}
+                        className="flex-1 px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium text-gray-700"
+                      />
+                      <div className="flex gap-2 items-center">
+                        {QUICK_HOURS.map(t => (
+                          <button
+                            key={t}
+                            type="button"
+                            onClick={() => setFormData({ ...formData, hora_limite: t })}
+                            className={`text-[10px] font-black uppercase tracking-wider px-3 py-2 rounded-lg transition-all ${formData.hora_limite === t
+                              ? 'bg-amber-500 text-white shadow-md shadow-amber-200'
+                              : 'bg-amber-50 text-amber-600 hover:bg-amber-100'
+                              }`}
+                          >
+                            {t}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
                   </div>
 
                   <div className="space-y-2 md:col-span-2">
@@ -429,7 +544,8 @@ function ControlDePrestamos() {
         )}
 
         {/* ── Stats Dashboard ── */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+        <div className={`grid grid-cols-1 md:grid-cols-3 gap-6 mb-10 transition-all duration-500 ${isScrolled ? 'opacity-0 -translate-y-4 pointer-events-none' : 'opacity-100 translate-y-0'
+          }`}>
           {stats.map((stat, idx) => (
             <div
               key={idx}
@@ -449,36 +565,52 @@ function ControlDePrestamos() {
 
         {/* ── List Section ── */}
         <div className="space-y-6">
-          <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-2">
+          <div className={`flex flex-col md:flex-row justify-between items-center gap-4 mb-2 sticky top-4 z-[40] p-4 rounded-3xl transition-all duration-300 ${isScrolled
+            ? 'bg-white/80 backdrop-blur-xl shadow-xl border border-white translate-y-2'
+            : 'bg-transparent'
+            }`}>
             <div className="flex flex-col gap-1">
-              <h2 className="text-2xl font-black text-slate-800 flex items-center gap-3">
+              <h2 className={`font-black flex items-center gap-3 transition-all ${isScrolled ? 'text-lg text-blue-900' : 'text-2xl text-slate-800'}`}>
                 Préstamos Registrados
                 <span className="bg-blue-100 text-blue-700 text-xs px-2.5 py-1 rounded-full">{filteredItems.length}</span>
               </h2>
-              <div className="flex gap-2">
-                {['Todos', 'Prestado', 'Devuelto'].map((status) => (
-                  <button
-                    key={status}
-                    onClick={() => setStatusFilter(status)}
-                    className={`text-[10px] uppercase font-black tracking-widest px-3 py-1 rounded-full transition-all ${statusFilter === status
-                      ? 'bg-slate-800 text-white shadow-sm'
-                      : 'bg-white text-slate-400 hover:text-slate-600 border border-slate-100'
-                      }`}
-                  >
-                    {status}
-                  </button>
-                ))}
-              </div>
+              {!isScrolled && (
+                <div className="flex gap-2 animate-in fade-in duration-500">
+                  {['Todos', 'Prestado', 'Devuelto'].map((status) => (
+                    <button
+                      key={status}
+                      onClick={() => setStatusFilter(status)}
+                      className={`text-[10px] uppercase font-black tracking-widest px-3 py-1 rounded-full transition-all ${statusFilter === status
+                        ? 'bg-slate-800 text-white shadow-sm'
+                        : 'bg-white text-slate-400 hover:text-slate-600 border border-slate-100'
+                        }`}
+                    >
+                      {status}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
-            <div className="relative w-full md:w-64 self-end md:self-center">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Buscar..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 bg-white border border-gray-200 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm"
-              />
+            <div className="flex items-center gap-3 w-full md:w-auto">
+              <div className="relative flex-1 md:w-64">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Buscar..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className={`w-full pl-10 pr-4 py-2 border transition-all text-sm rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 ${isScrolled ? 'bg-slate-50 border-slate-200' : 'bg-white border-gray-200'
+                    }`}
+                />
+              </div>
+              {isScrolled && (
+                <button
+                  onClick={() => setShowForm(true)}
+                  className="p-2.5 bg-blue-600 text-white rounded-full shadow-lg hover:bg-blue-700 transition-all active:scale-95 animate-in zoom-in"
+                >
+                  <Plus className="w-5 h-5" />
+                </button>
+              )}
             </div>
           </div>
 
@@ -496,77 +628,127 @@ function ControlDePrestamos() {
               <p className="text-gray-400">Intenta con otra búsqueda o agrega un nuevo préstamo.</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {filteredItems.map((item, idx) => {
-                const status = getStatusStyle(item.content?.estado);
-                return (
-                  <div
-                    key={item.id}
-                    style={{ animationDelay: `${idx * 50}ms` }}
-                    className="group bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 overflow-hidden animate-in fade-in slide-in-from-bottom-4"
-                  >
-                    <div className={`h-1.5 w-full ${status.accent}`}></div>
-                    <div className="p-6">
-                      <div className="flex justify-between items-start mb-4">
-                        <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${status.bg} ${status.text}`}>
-                          {status.icon}
-                          {item.content?.estado || 'Prestado'}
-                        </div>
-                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <button
-                            onClick={() => toggleStatus(item)}
-                            title={item.content?.estado === 'Prestado' ? 'Marcar como Devuelto' : 'Reabrir Préstamo'}
-                            className={`p-2 rounded-lg transition-colors ${item.content?.estado === 'Prestado'
-                              ? 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100'
-                              : 'bg-amber-50 text-amber-600 hover:bg-amber-100'
-                              }`}
-                          >
-                            {item.content?.estado === 'Prestado' ? <Check className="w-4 h-4" /> : <RotateCcw className="w-4 h-4" />}
-                          </button>
-                          <button
-                            onClick={() => handleEdit(item)}
-                            className="bg-blue-50 hover:bg-blue-100 text-blue-600 p-2 rounded-lg transition-colors"
-                          >
-                            <Edit className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => setConfirmDialog({ show: true, id: item.id })}
-                            className="bg-rose-50 hover:bg-rose-100 text-rose-600 p-2 rounded-lg transition-colors"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </div>
+            <div className="flex flex-col gap-6">
+              {(() => {
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
 
-                      <h3 className="text-xl font-bold text-gray-800 mb-1 group-hover:text-blue-700 transition-colors">
-                        {item.content?.articulo || 'Sin nombre'}
-                      </h3>
+                return filteredItems.map((item, idx) => {
+                  const content = item.content || {};
+                  const status = getStatusStyle(content.estado);
+                  const isLate = content.estado === 'Prestado' &&
+                    content.fecha_devolucion &&
+                    new Date(content.fecha_devolucion + 'T23:59:59') < today;
 
-                      <div className="flex items-center text-gray-500 font-medium text-sm mb-4">
-                        <User className="w-3.5 h-3.5 mr-2" />
-                        {item.content?.persona || 'No asignado'}
-                      </div>
+                  return (
+                    <div
+                      key={item.id}
+                      style={{ animationDelay: `${idx * 50}ms` }}
+                      className="group relative bg-white rounded-3xl border border-gray-100 shadow-sm hover:shadow-2xl hover:-translate-y-1 transition-all duration-500 overflow-hidden flex flex-col md:flex-row animate-in fade-in slide-in-from-bottom-4"
+                    >
+                      {/* Indicador lateral de estado */}
+                      <div className={`w-full md:w-3 h-3 md:h-auto ${isLate ? 'bg-rose-500 animate-pulse' : status.accent} transition-colors`}></div>
 
-                      <div className="grid grid-cols-2 gap-4 pt-4 border-t border-gray-50">
-                        <div>
-                          <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Fecha Salida</p>
-                          <div className="flex items-center text-gray-700 font-bold text-xs">
-                            <Calendar className="w-3.5 h-3.5 mr-1.5 text-blue-500" />
-                            {item.content?.fecha_prestamo || 'N/A'}
+                      <div className="flex-1 p-6 md:p-8 flex flex-col md:flex-row items-center gap-8">
+                        {/* Sección de Icono y Articulo */}
+                        <div className="flex items-center gap-6 w-full md:w-1/3 border-b md:border-b-0 md:border-r border-gray-50 pb-6 md:pb-0 md:pr-8">
+                          <div className={`w-16 h-16 rounded-2xl ${status.bg} flex items-center justify-center shrink-0 shadow-inner group-hover:scale-110 transition-transform duration-500`}>
+                            <Package className={`w-8 h-8 ${status.text}`} />
+                          </div>
+                          <div className="min-w-0">
+                            <h3 className="text-2xl font-black text-gray-800 truncate group-hover:text-blue-700 transition-colors lowercase first-letter:uppercase">
+                              {item.content?.articulo || 'Sin nombre'}
+                            </h3>
+                            <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest mt-2 ${status.bg} ${status.text}`}>
+                              {status.icon}
+                              {item.content?.estado || 'Prestado'}
+                            </div>
                           </div>
                         </div>
-                        <div>
-                          <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Devolución</p>
-                          <div className="flex items-center text-gray-700 font-bold text-xs">
-                            <Calendar className="w-3.5 h-3.5 mr-1.5 text-rose-400" />
-                            {item.content?.fecha_devolucion || 'Pendiente'}
+
+                        {/* Sección de Datos y Fechas */}
+                        <div className="flex-1 flex flex-col xl:flex-row flex-wrap items-center gap-y-6 gap-x-12 w-full">
+                          {/* Responsable */}
+                          <div className="min-w-[140px]">
+                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5">Responsable</p>
+                            <div className="flex items-center text-gray-700 font-bold">
+                              <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center mr-3 text-slate-500 shrink-0">
+                                <User className="w-4 h-4" />
+                              </div>
+                              <span className="truncate">{item.content?.persona || 'No asignado'}</span>
+                            </div>
+                          </div>
+
+                          {/* Periodo */}
+                          <div className="flex-1 min-w-[200px]">
+                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5">Periodo</p>
+                            <div className="flex flex-col gap-1">
+                              <div className="flex items-center text-gray-600 font-bold text-xs whitespace-nowrap">
+                                <Calendar className="w-3.5 h-3.5 mr-2 text-blue-500 shrink-0" />
+                                <span>{item.content?.fecha_prestamo}</span>
+                                <span className="mx-2 text-gray-300">→</span>
+                                <span className={item.content?.fecha_devolucion ? 'text-gray-800' : 'text-gray-400 italic'}>
+                                  {item.content?.fecha_devolucion || 'Pendiente'}
+                                </span>
+                              </div>
+                              {item.content?.hora_limite && (
+                                <div className="flex items-center text-amber-600 font-black text-[10px] uppercase tracking-tighter">
+                                  <Clock className="w-3 h-3 mr-1.5 shrink-0" />
+                                  Límite: {item.content.hora_limite}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Acciones Rápidas */}
+                          <div className="flex items-center justify-center md:justify-end gap-3 shrink-0 ml-auto w-full xl:w-auto border-t md:border-t-0 pt-4 md:pt-0">
+                            {item.content?.estado === 'Prestado' && (
+                              <button
+                                onClick={(e) => { e.stopPropagation(); extendLoan(item, 1); }}
+                                className="px-4 py-2 bg-indigo-50 text-indigo-700 rounded-xl font-black text-[10px] uppercase tracking-wider hover:bg-indigo-600 hover:text-white transition-all active:scale-95 flex items-center gap-2"
+                              >
+                                <Plus className="w-3 h-3" /> +1 Día
+                              </button>
+                            )}
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => toggleStatus(item)}
+                                title={item.content?.estado === 'Prestado' ? 'Marcar como Devuelto' : 'Reabrir Préstamo'}
+                                className={`p-3 rounded-xl transition-all shadow-sm transform hover:scale-105 ${item.content?.estado === 'Prestado'
+                                  ? 'bg-emerald-50 text-emerald-600 hover:bg-emerald-500 hover:text-white shadow-emerald-100 border border-emerald-100'
+                                  : 'bg-amber-50 text-amber-600 hover:bg-amber-500 hover:text-white shadow-amber-100 border border-amber-100'
+                                  }`}
+                              >
+                                {item.content?.estado === 'Prestado' ? <Check className="w-5 h-5" /> : <RotateCcw className="w-5 h-5" />}
+                              </button>
+                              <button
+                                onClick={() => handleEdit(item)}
+                                className="p-3 bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white rounded-xl transition-all shadow-sm shadow-blue-100 border border-blue-100 transform hover:scale-105"
+                              >
+                                <Edit className="w-5 h-5" />
+                              </button>
+                              <button
+                                onClick={() => setConfirmDialog({ show: true, id: item.id })}
+                                className="p-3 bg-rose-50 text-rose-600 hover:bg-rose-600 hover:text-white rounded-xl transition-all shadow-sm shadow-rose-100 border border-rose-100 transform hover:scale-105"
+                              >
+                                <Trash2 className="w-5 h-5" />
+                              </button>
+                            </div>
                           </div>
                         </div>
                       </div>
+
+                      {/* Badge de Alerta si está vencido */}
+                      {/* Badge de Alerta si está vencido */}
+                      {isLate && (
+                        <div className="absolute top-0 right-0 bg-rose-500 text-white text-[9px] font-black px-4 py-1.5 rounded-bl-2xl uppercase tracking-widest shadow-lg">
+                          Préstamo Vencido
+                        </div>
+                      )}
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                });
+              })()}
             </div>
           )}
         </div>
