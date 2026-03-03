@@ -269,35 +269,7 @@ function MetasModuleTemplate({ moduleName, moduleOwner, fields }) {
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-                    <div className="kpi-card indigo-gradient">
-                        <div className="kpi-content">
-                            <span className="kpi-label">Total Metas</span>
-                            <div className="kpi-value">{items.length}</div>
-                        </div>
-                        <Target className="kpi-bg-icon" />
-                    </div>
 
-                    <div className="kpi-card amber-gradient">
-                        <div className="kpi-content">
-                            <span className="kpi-label">Pendientes</span>
-                            <div className="kpi-value">
-                                {items.filter(item => item.content.estado !== 'Completado').length}
-                            </div>
-                        </div>
-                        <Clock className="kpi-bg-icon" />
-                    </div>
-
-                    <div className="kpi-card green-gradient">
-                        <div className="kpi-content">
-                            <span className="kpi-label">Completadas</span>
-                            <div className="kpi-value">
-                                {items.filter(item => item.content.estado === 'Completado').length}
-                            </div>
-                        </div>
-                        <CheckCircle className="kpi-bg-icon" />
-                    </div>
-                </div>
 
                 {successMsg && (
                     <div className="metas-toast-container">
