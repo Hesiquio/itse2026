@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { BookOpen, Calculator, Users, CreditCard, User, Link as LinkIcon, Calendar, DollarSign, CheckSquare, Lightbulb, Lock, Clock, BookMarked, AlertCircle, Target, Package, Phone, FileText } from 'lucide-react';
+import { BookOpen, Calculator, Users, CreditCard, User, Link as LinkIcon, Calendar, DollarSign, CheckSquare, Lightbulb, Lock, Clock, BookMarked, AlertCircle, Target, Package, Phone, FileText, Video, Shirt } from 'lucide-react';
 
 const modules = [
   { name: 'Gestor de Tareas', path: '/gestor-de-tareas', icon: CheckSquare, description: 'Jhovany_Organiza y gestiona tus tareas académicas' },
@@ -20,6 +20,8 @@ const modules = [
   { name: 'Inventario de Componentes', path: '/inventario-de-componentes', icon: Package, description: 'Gestiona componentes electrónicos' },
   { name: 'Contactos de Equipos', path: '/contactos-de-equipos', icon: Phone, description: 'AlexisVaqueiro_Directorio de compañeros de equipo' },
   { name: 'Citas de Referencias pAPA', path: '/citas-de-referencias-apa', icon: FileText, description: 'Gestiona tus referencias bibliográficas' },
+  { name: 'Review', path: '/review', icon: Video, description: 'Anota links de videos y su descripción' },
+  { name: 'AllForOne', path: '/all-for-one', icon: Shirt, description: 'Adrel_Pedidos de sublimadora de ropa' },
 ];
 
 function HomePage() {
