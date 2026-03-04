@@ -13,7 +13,7 @@ const modules = [
   { name: 'Control de Asistencias', path: '/control-de-asistencias', icon: CheckSquare, description: 'LuisPat_Registra tu asistencia a clases' },
   { name: 'Ideas para Proyectos', path: '/ideas-para-proyectos', icon: Lightbulb, description: 'Sergio_Guarda ideas para futuros proyectos' },
   { name: 'Gestor de Contraseñas Simulado', path: '/gestor-de-contrasenas-simulado', icon: Lock, description: 'Jorge_Administra tus credenciales de forma segura' },
-  { name: 'Horario de Laboratorio', path: '/horario-de-laboratorio', icon: Clock, description: 'Adrel_Gestiona tus horarios de laboratorio' },
+  { name: 'Horario de Laboratorio', path: '/horario-de-laboratorio', icon: Clock, description: 'Eduard_Gestiona tus horarios de laboratorio' },
   { name: 'Lista de Lecturas', path: '/lista-de-lecturas', icon: BookMarked, description: 'Sheyla_Organiza tus lecturas pendientes' },
   { name: 'Diario de Errores', path: '/diario-de-errores', icon: AlertCircle, description: 'Adrel_Documenta errores y soluciones' },
   { name: 'Metas del Semestre', path: '/metas-del-semestre', icon: Target, description: 'Solis_Define y da seguimiento a tus metas' },
