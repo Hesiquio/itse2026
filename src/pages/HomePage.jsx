@@ -6,7 +6,7 @@ const modules = [
   { name: 'Calculadora de Promedios', path: '/calculadora-de-promedios', icon: Calculator, description: 'Daniel_Calcula tus promedios académicos' },
   { name: 'Bitácora de Tutorías', path: '/bitacora-de-tutorias', icon: BookOpen, description: 'Registra tus sesiones de tutoría' },
   { name: 'Control de Préstamos', path: '/control-de-prestamos', icon: CreditCard, description: 'Alexis_Administra préstamos de materiales' },
-  { name: 'Directorio de Profesores', path: '/directorio-de-profesores', icon: User, description: 'Información de contacto de profesores' },
+  { name: 'Directorio de Profesores', path: '/directorio-de-profesores', icon: User, description: 'Alicia_Información de contacto de profesores' },
   { name: 'Repositorio de Enlaces', path: '/repositorio-de-enlaces', icon: LinkIcon, description: 'Guarda enlaces útiles para tus estudios' },
   { name: 'Planificador de Exámenes', path: '/planificador-de-examenes', icon: Calendar, description: 'Planifica tus fechas de examen' },
   { name: 'Registro de Gastos', path: '/registro-de-gastos', icon: DollarSign, description: 'Mayra_Controla tus gastos estudiantiles' },
