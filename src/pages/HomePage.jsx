@@ -1,10 +1,10 @@
 import { Link } from 'react-router-dom';
-import { BookOpen, Calculator, Users, CreditCard, User, Link as LinkIcon, Calendar, DollarSign, CheckSquare, Lightbulb, Lock, Clock, BookMarked, AlertCircle, Target, Package, Phone, FileText, Video, Shirt } from 'lucide-react';
+import { BookOpen, Calculator, Users, CreditCard, User, Link as LinkIcon, Calendar, DollarSign, CheckSquare, Lightbulb, Lock, Clock, BookMarked, AlertCircle, Target, Package, Phone, FileText, Video, Shirt, Zap } from 'lucide-react';
 
 const modules = [
   { name: 'Gestor de Tareas', path: '/gestor-de-tareas', icon: CheckSquare, description: 'Jhovany_Organiza y gestiona tus tareas académicas' },
   { name: 'Calculadora de Promedios', path: '/calculadora-de-promedios', icon: Calculator, description: 'Daniel_Calcula tus promedios académicos' },
-  { name: 'Bitácora de Tutorías', path: '/bitacora-de-tutorias', icon: BookOpen, description: 'Registra tus sesiones de tutoría' },
+  { name: 'Bitácora de Tutorías', path: '/bitacora-de-tutorias', icon: BookOpen, description: 'Victor_Registra tus sesiones de tutoría' },
   { name: 'Control de Préstamos', path: '/control-de-prestamos', icon: CreditCard, description: 'Alexis_Administra préstamos de materiales' },
   { name: 'Directorio de Profesores', path: '/directorio-de-profesores', icon: User, description: 'Alicia_Información de contacto de profesores' },
   { name: 'Repositorio de Enlaces', path: '/repositorio-de-enlaces', icon: LinkIcon, description: 'Guarda enlaces útiles para tus estudios' },
@@ -17,11 +17,12 @@ const modules = [
   { name: 'Lista de Lecturas', path: '/lista-de-lecturas', icon: BookMarked, description: 'Sheyla_Organiza tus lecturas pendientes' },
   { name: 'Diario de Errores', path: '/diario-de-errores', icon: AlertCircle, description: 'Adrel_Documenta errores y soluciones' },
   { name: 'Metas del Semestre', path: '/metas-del-semestre', icon: Target, description: 'Solis_Define y da seguimiento a tus metas' },
-  { name: 'Inventario de Componentes', path: '/inventario-de-componentes', icon: Package, description: 'Gestiona componentes electrónicos' },
+  { name: 'Inventario de Componentes', path: '/inventario-de-componentes', icon: Package, description: 'Maria_Gestiona componentes electrónicos' },
   { name: 'Contactos de Equipos', path: '/contactos-de-equipos', icon: Phone, description: 'AlexisVaqueiro_Directorio de compañeros de equipo' },
   { name: 'Citas de Referencias APA', path: '/citas-de-referencias-apa', icon: FileText, description: 'Gestiona tus referencias bibliográficas' },
   { name: 'Review', path: '/review', icon: Video, description: 'Felix_Anota links de videos y su descripción' },
   { name: 'AllForOne', path: '/all-for-one', icon: Shirt, description: 'Adrel_Pedidos de sublimadora de ropa' },
+  { name: 'Luces', path: '/luces', icon: Zap, description: 'Gestión de circuitos e iluminación' },
 ];
 
 function HomePage() {
