@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 import { ArrowLeft, Plus, Edit, Trash2, Save, X, AlertCircle, CheckCircle } from 'lucide-react';
 
-function ModuleTemplate({ moduleName, moduleOwner, fields }) {
+function ModuleTemplate({ moduleName, moduleOwner, fields, validateContent, exportFilename, renderItem, headerClassName, onItemsUpdate }) {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -38,7 +38,9 @@ function ModuleTemplate({ moduleName, moduleOwner, fields }) {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setItems(data || []);
+      const newItems = data || [];
+      setItems(newItems);
+      if (onItemsUpdate) onItemsUpdate(newItems);
     } catch (error) {
       console.error('Error fetching data:', error.message);
       setErrorMsg('Error al cargar datos: ' + error.message);
@@ -57,7 +59,9 @@ function ModuleTemplate({ moduleName, moduleOwner, fields }) {
         .select();
 
       if (error) throw error;
-      setItems([data[0], ...items]);
+      const newItems = [data[0], ...items];
+      setItems(newItems);
+      if (onItemsUpdate) onItemsUpdate(newItems);
       setSuccessMsg('¡Registro guardado correctamente!');
       resetForm();
     } catch (error) {
@@ -78,7 +82,9 @@ function ModuleTemplate({ moduleName, moduleOwner, fields }) {
         .eq('id', id);
 
       if (error) throw error;
-      setItems(items.map(item => item.id === id ? { ...item, content } : item));
+      const newItems = items.map(item => item.id === id ? { ...item, content } : item);
+      setItems(newItems);
+      if (onItemsUpdate) onItemsUpdate(newItems);
       setSuccessMsg('¡Registro actualizado correctamente!');
       resetForm();
     } catch (error) {
@@ -99,7 +105,9 @@ function ModuleTemplate({ moduleName, moduleOwner, fields }) {
         .eq('id', id);
 
       if (error) throw error;
-      setItems(items.filter(item => item.id !== id));
+      const newItems = items.filter(item => item.id !== id);
+      setItems(newItems);
+      if (onItemsUpdate) onItemsUpdate(newItems);
       setSuccessMsg('Registro eliminado.');
     } catch (error) {
       console.error('Error deleting data:', error.message);
@@ -115,6 +123,14 @@ function ModuleTemplate({ moduleName, moduleOwner, fields }) {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    // run optional validation callback first, pass editingItem for context
+    if (validateContent) {
+      const validationError = validateContent(formData, editingItem);
+      if (validationError) {
+        setErrorMsg(validationError);
+        return;
+      }
+    }
     if (editingItem) {
       updateData(editingItem.id, formData);
     } else {
@@ -141,8 +157,29 @@ function ModuleTemplate({ moduleName, moduleOwner, fields }) {
     errorMsg.includes('permission')
   );
 
+  // helper para exportar los elementos actuales como CSV
+  const exportToCSV = () => {
+    if (!items || items.length === 0) return;
+    const headers = fields.map(f => f.label);
+    const rows = items.map(i => fields.map(f => {
+      const cell = i.content[f.name];
+      // escape commas
+      return typeof cell === 'string' ? `"${cell.replace(/"/g,'""')}"` : cell;
+    }).join(','));
+    const csv = [headers.join(','), ...rows].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = exportFilename || 'export.csv';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-100">
       <div className="container mx-auto px-4 py-8">
         <div className="mb-6">
           <Link to="/" className="inline-flex items-center text-blue-600 hover:text-blue-800 mb-4">
@@ -150,14 +187,24 @@ function ModuleTemplate({ moduleName, moduleOwner, fields }) {
             Volver al inicio
           </Link>
           <div className="flex justify-between items-center">
-            <h1 className="text-4xl font-bold text-gray-800">{moduleName}</h1>
-            <button
-              onClick={() => { setShowForm(!showForm); setEditingItem(null); setErrorMsg(null); }}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center transition-colors"
-            >
-              {showForm ? <X className="w-4 h-4 mr-2" /> : <Plus className="w-4 h-4 mr-2" />}
-              {showForm ? 'Cancelar' : 'Agregar Nuevo'}
-            </button>
+            <h1 className={`text-4xl font-extrabold tracking-tight ${headerClassName || 'text-gray-800'} ${!headerClassName ? 'bg-clip-text text-transparent bg-gradient-to-r from-blue-500 to-indigo-600' : ''}`}>{moduleName}</h1>
+            <div className="flex gap-2">
+              {exportFilename && (
+                <button
+                  onClick={exportToCSV}
+                  className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-2 rounded-lg flex items-center shadow text-sm transition-colors"
+                >
+                  📄 Exportar CSV
+                </button>
+              )}
+              <button
+                onClick={() => { setShowForm(!showForm); setEditingItem(null); setErrorMsg(null); }}
+                className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-4 py-2 rounded-lg flex items-center shadow transition-colors"
+              >
+                {showForm ? <X className="w-4 h-4 mr-2" /> : <Plus className="w-4 h-4 mr-2" />}
+                {showForm ? 'Cancelar' : 'Agregar Nuevo'}
+              </button>
+            </div>
           </div>
         </div>
 
@@ -189,15 +236,15 @@ ALTER TABLE student_modules DISABLE ROW LEVEL SECURITY;`}
 
         {/* ── Banner de éxito ── */}
         {successMsg && (
-          <div className="mb-4 flex items-center gap-3 bg-green-50 border border-green-300 text-green-800 rounded-lg px-4 py-3">
-            <CheckCircle className="w-5 h-5 flex-shrink-0" />
+          <div className="mb-4 flex items-center gap-3 bg-green-50 border border-green-300 text-green-800 rounded-lg px-4 py-3 animate-bounce">
+            <CheckCircle className="w-5 h-5 flex-shrink-0 animate-ping" />
             <p>{successMsg}</p>
           </div>
         )}
 
         {/* ── Formulario ── */}
         {showForm && (
-          <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+          <div className="bg-white rounded-xl shadow-xl p-6 mb-6 ring-1 ring-gray-200">
             <h2 className="text-2xl font-semibold mb-4">
               {editingItem ? 'Editar' : 'Agregar Nuevo'} {moduleName}
             </h2>
@@ -212,9 +259,10 @@ ALTER TABLE student_modules DISABLE ROW LEVEL SECURITY;`}
                     <textarea
                       value={formData[field.name] || ''}
                       onChange={(e) => handleInputChange(field.name, e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-4 focus:ring-indigo-400 focus:border-indigo-500 transition"
                       rows="4"
                       required={field.required}
+                      {...(field.placeholder ? { placeholder: field.placeholder } : {})}
                     />
                   ) : field.type === 'select' ? (
                     <select
@@ -233,8 +281,12 @@ ALTER TABLE student_modules DISABLE ROW LEVEL SECURITY;`}
                       type={field.type || 'text'}
                       value={formData[field.name] || ''}
                       onChange={(e) => handleInputChange(field.name, e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-4 focus:ring-indigo-400 focus:border-indigo-500 transition"
                       required={field.required}
+                      {...(field.min ? { min: field.min } : {})}
+                      {...(field.max ? { max: field.max } : {})}
+                      {...(field.step ? { step: field.step } : {})}
+                      {...(field.placeholder ? { placeholder: field.placeholder } : {})}
                     />
                   )}
                 </div>
@@ -300,17 +352,21 @@ ALTER TABLE student_modules DISABLE ROW LEVEL SECURITY;`}
           ) : (
             <div className="space-y-4">
               {items.map((item) => (
-                <div key={item.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+                <div key={item.id} className="border border-gray-200 rounded-xl p-4 bg-white hover:shadow-lg transition-shadow">
                   <div className="flex justify-between items-start">
                     <div className="flex-1">
-                      {fields.map((field) => (
-                        <div key={field.name} className="mb-2">
-                          <span className="font-medium text-gray-700">{field.label}: </span>
-                          <span className="text-gray-600">
-                            {item.content[field.name] || 'N/A'}
-                          </span>
-                        </div>
-                      ))}
+                      {renderItem ? (
+                        renderItem(item, fields)
+                      ) : (
+                        fields.map((field) => (
+                          <div key={field.name} className="mb-2">
+                            <span className="font-medium text-gray-700">{field.label}: </span>
+                            <span className="text-gray-600">
+                              {item.content[field.name] || 'N/A'}
+                            </span>
+                          </div>
+                        ))
+                      )}
                       <div className="text-xs text-gray-400 mt-2">
                         Creado: {new Date(item.created_at).toLocaleString('es-ES')}
                       </div>
@@ -318,7 +374,7 @@ ALTER TABLE student_modules DISABLE ROW LEVEL SECURITY;`}
                     <div className="flex gap-2 ml-4">
                       <button
                         onClick={() => handleEdit(item)}
-                        className="text-blue-600 hover:text-blue-800 p-2"
+                        className="text-indigo-600 hover:text-indigo-800 p-2"
                         title="Editar"
                       >
                         <Edit className="w-5 h-5" />

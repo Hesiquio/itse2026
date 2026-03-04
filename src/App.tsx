@@ -12,6 +12,7 @@ import ControlDeAsistencias from './modules/ControlDeAsistencias/ControlDeAsiste
 import IdeasParaProyectos from './modules/IdeasParaProyectos/IdeasParaProyectos';
 import GestorDeContrasenasSimulado from './modules/GestorDeContrasenasSimulado/GestorDeContrasenasSimulado';
 import HorarioDeLaboratorio from './modules/HorarioDeLaboratorio/HorarioDeLaboratorio';
+import DisponibilidadHorario from './modules/HorarioDeLaboratorio/DisponibilidadHorario';
 import ListaDeLecturas from './modules/ListaDeLecturas/ListaDeLecturas';
 import DiarioDeErrores from './modules/DiarioDeErrores/DiarioDeErrores';
 import MetasDelSemestre from './modules/MetasDelSemestre/MetasDelSemestre';
@@ -38,6 +39,7 @@ function App() {
         <Route path="/ideas-para-proyectos" element={<IdeasParaProyectos />} />
         <Route path="/gestor-de-contrasenas-simulado" element={<GestorDeContrasenasSimulado />} />
         <Route path="/horario-de-laboratorio" element={<HorarioDeLaboratorio />} />
+        <Route path="/horario-de-laboratorio/disponibilidad" element={<DisponibilidadHorario />} />
         <Route path="/lista-de-lecturas" element={<ListaDeLecturas />} />
         <Route path="/diario-de-errores" element={<DiarioDeErrores />} />
         <Route path="/metas-del-semestre" element={<MetasDelSemestre />} />
