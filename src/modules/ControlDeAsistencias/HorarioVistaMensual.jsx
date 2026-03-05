@@ -18,7 +18,7 @@ const getAsistenciaColor = (asistencia) => {
     case 'Retardo':
       return 'bg-yellow-50 border-yellow-300';
     default:
-      return 'bg-gray-50';
+      return 'bg-blue-50 border-blue-300';
   }
 };
 
@@ -118,11 +118,8 @@ export default function HorarioVistaMensual() {
                       <div className="font-semibold text-gray-800 line-clamp-1">
                         {act.content.materia}
                       </div>
-                      <div className="flex items-center gap-1 mt-1">
-                        {getAsistenciaIcon(act.content.asistencia)}
-                        <span className="text-gray-600">
-                          {act.content.asistencia || 'Sin marcar'}
-                        </span>
+                      <div className="text-gray-600 line-clamp-1 text-xs">
+                        {act.content.hora_inicio} - {act.content.hora_fin}
                       </div>
                     </div>
                   ))}
