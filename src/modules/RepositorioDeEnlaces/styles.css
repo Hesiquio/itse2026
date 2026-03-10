@@ -29,6 +29,10 @@
   color: #1a1a1a !important;
 }
 
+.repo-enlaces-wrapper:not(.dark) .text-gray-800 {
+  color: #0a0a0a !important;
+}
+
 .repo-enlaces-wrapper:not(.dark) .dark\:text-gray-300 {
   color: #222222 !important;
 }
@@ -61,7 +65,7 @@
   color: #666666 !important;
 }
 
-/* Modo Oscuro - Fondo Negro */
+/* Modo Oscuro - Fondo Negro con Contraste Alto */
 .repo-enlaces-wrapper.dark .bg-gray-50 {
   background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%) !important;
 }
@@ -78,12 +82,8 @@
   background: linear-gradient(135deg, #1a1a1a 0%, #222222 100%) !important;
 }
 
-.repo-enlaces-wrapper.dark .border-gray-200 {
-  border-color: #7c3aed !important;
-}
-
-.repo-enlaces-wrapper.dark .dark\:border-gray-700 {
-  border-color: #8b5cf6 !important;
+.repo-enlaces-wrapper.dark .text-gray-800 {
+  color: #ffffff !important;
 }
 
 .repo-enlaces-wrapper.dark .text-gray-700 {
@@ -122,6 +122,14 @@
   color: #b0bec5 !important;
 }
 
+.repo-enlaces-wrapper.dark .border-gray-200 {
+  border-color: #7c3aed !important;
+}
+
+.repo-enlaces-wrapper.dark .dark\:border-gray-700 {
+  border-color: #8b5cf6 !important;
+}
+
 /* Ajustar enlaces para evitar desbordamiento */
 .repo-enlaces-wrapper a {
   word-break: break-all !important;
@@ -129,7 +137,8 @@
   overflow-wrap: break-word !important;
 }
 
-.repo-enlaces-wrapper .hover\:shadow-md {
+/* Sombras en modo oscuro */
+.repo-enlaces-wrapper.dark .hover\:shadow-md {
   box-shadow: 0 10px 15px -3px rgba(139, 92, 246, 0.3), 0 4px 6px -2px rgba(139, 92, 246, 0.2) !important;
 }
 
@@ -137,6 +146,7 @@
   box-shadow: 0 20px 25px -5px rgba(168, 85, 247, 0.4), 0 10px 10px -5px rgba(168, 85, 247, 0.3) !important;
 }
 
+/* Sombras en modo claro */
 .repo-enlaces-wrapper:not(.dark) .hover\:shadow-md {
   box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
 }
