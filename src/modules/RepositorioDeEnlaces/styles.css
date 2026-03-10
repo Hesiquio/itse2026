@@ -87,27 +87,27 @@
 }
 
 .repo-enlaces-wrapper.dark .text-gray-700 {
-  color: #e9d5ff !important;
+  color: #ffffff !important;
 }
 
 .repo-enlaces-wrapper.dark .dark\:text-gray-300 {
-  color: #f3e8ff !important;
+  color: #f0f0f0 !important;
 }
 
 .repo-enlaces-wrapper.dark .text-gray-600 {
-  color: #d8b4fe !important;
+  color: #e0e0e0 !important;
 }
 
 .repo-enlaces-wrapper.dark .dark\:text-gray-400 {
-  color: #c4b5fd !important;
+  color: #d0d0d0 !important;
 }
 
 .repo-enlaces-wrapper.dark .text-blue-600 {
-  color: #a855f7 !important;
+  color: #64b5f6 !important;
 }
 
 .repo-enlaces-wrapper.dark .dark\:text-blue-400 {
-  color: #c084fc !important;
+  color: #81c784 !important;
 }
 
 .repo-enlaces-wrapper.dark .bg-gray-200 {
@@ -119,10 +119,17 @@
 }
 
 .repo-enlaces-wrapper.dark .text-gray-500 {
-  color: #a78bfa !important;
+  color: #b0bec5 !important;
 }
 
-.repo-enlaces-wrapper.dark .hover\:shadow-md {
+/* Ajustar enlaces para evitar desbordamiento */
+.repo-enlaces-wrapper a {
+  word-break: break-all !important;
+  max-width: 100% !important;
+  overflow-wrap: break-word !important;
+}
+
+.repo-enlaces-wrapper .hover\:shadow-md {
   box-shadow: 0 10px 15px -3px rgba(139, 92, 246, 0.3), 0 4px 6px -2px rgba(139, 92, 246, 0.2) !important;
 }
 
