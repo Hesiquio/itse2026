@@ -1,4 +1,5 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { ThemeProvider } from './context/ThemeContext';
 import HomePage from './pages/HomePage';
 import GestorDeTareas from './modules/GestorDeTareas/GestorDeTareas';
 import CalculadoraDePromedios from './modules/CalculadoraDePromedios/CalculadoraDePromedios';
@@ -21,29 +22,31 @@ import CitasDeReferenciasAPA from './modules/CitasDeReferenciasAPA/CitasDeRefere
 
 function App() {
   return (
-    <Router>
-      <Routes>
-        <Route path="/" element={<HomePage />} />
-        <Route path="/gestor-de-tareas" element={<GestorDeTareas />} />
-        <Route path="/calculadora-de-promedios" element={<CalculadoraDePromedios />} />
-        <Route path="/bitacora-de-tutorias" element={<BitacoraDeTutorias />} />
-        <Route path="/control-de-prestamos" element={<ControlDePrestamos />} />
-        <Route path="/directorio-de-profesores" element={<DirectorioDeProfesores />} />
-        <Route path="/repositorio-de-enlaces" element={<RepositorioDeEnlaces />} />
-        <Route path="/planificador-de-examenes" element={<PlanificadorDeExamenes />} />
-        <Route path="/registro-de-gastos" element={<RegistroDeGastos />} />
-        <Route path="/control-de-asistencias" element={<ControlDeAsistencias />} />
-        <Route path="/ideas-para-proyectos" element={<IdeasParaProyectos />} />
-        <Route path="/gestor-de-contrasenas-simulado" element={<GestorDeContrasenasSimulado />} />
-        <Route path="/horario-de-laboratorio" element={<HorarioDeLaboratorio />} />
-        <Route path="/lista-de-lecturas" element={<ListaDeLecturas />} />
-        <Route path="/diario-de-errores" element={<DiarioDeErrores />} />
-        <Route path="/metas-del-semestre" element={<MetasDelSemestre />} />
-        <Route path="/inventario-de-componentes" element={<InventarioDeComponentes />} />
-        <Route path="/contactos-de-equipos" element={<ContactosDeEquipos />} />
-        <Route path="/citas-de-referencias-apa" element={<CitasDeReferenciasAPA />} />
-      </Routes>
-    </Router>
+    <ThemeProvider>
+      <Router>
+        <Routes>
+          <Route path="/" element={<HomePage />} />
+          <Route path="/gestor-de-tareas" element={<GestorDeTareas />} />
+          <Route path="/calculadora-de-promedios" element={<CalculadoraDePromedios />} />
+          <Route path="/bitacora-de-tutorias" element={<BitacoraDeTutorias />} />
+          <Route path="/control-de-prestamos" element={<ControlDePrestamos />} />
+          <Route path="/directorio-de-profesores" element={<DirectorioDeProfesores />} />
+          <Route path="/repositorio-de-enlaces" element={<RepositorioDeEnlaces />} />
+          <Route path="/planificador-de-examenes" element={<PlanificadorDeExamenes />} />
+          <Route path="/registro-de-gastos" element={<RegistroDeGastos />} />
+          <Route path="/control-de-asistencias" element={<ControlDeAsistencias />} />
+          <Route path="/ideas-para-proyectos" element={<IdeasParaProyectos />} />
+          <Route path="/gestor-de-contrasenas-simulado" element={<GestorDeContrasenasSimulado />} />
+          <Route path="/horario-de-laboratorio" element={<HorarioDeLaboratorio />} />
+          <Route path="/lista-de-lecturas" element={<ListaDeLecturas />} />
+          <Route path="/diario-de-errores" element={<DiarioDeErrores />} />
+          <Route path="/metas-del-semestre" element={<MetasDelSemestre />} />
+          <Route path="/inventario-de-componentes" element={<InventarioDeComponentes />} />
+          <Route path="/contactos-de-equipos" element={<ContactosDeEquipos />} />
+          <Route path="/citas-de-referencias-apa" element={<CitasDeReferenciasAPA />} />
+        </Routes>
+      </Router>
+    </ThemeProvider>
   );
 }
 

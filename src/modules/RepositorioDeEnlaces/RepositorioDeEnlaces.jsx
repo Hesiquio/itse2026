@@ -1,10 +1,10 @@
 import ModuleTemplate from '../../components/ModuleTemplate';
 
 const fields = [
-  { name: 'titulo', label: 'Título', type: 'text', required: true },
-  { name: 'url', label: 'URL', type: 'url', required: true },
-  { name: 'categoria', label: 'Categoría', type: 'text', required: true },
-  { name: 'descripcion', label: 'Descripción', type: 'textarea', required: false },
+  { name: 'concepto', label: 'Concepto', type: 'text', required: true },
+  { name: 'descripcion', label: 'Descripción', type: 'textarea', required: true },
+  { name: 'imagen', label: 'Imagen', type: 'file', accept: 'image/*', required: false },
+  { name: 'enlace', label: 'Enlace', type: 'url', required: true },
 ];
 
 function RepositorioDeEnlaces() {
