@@ -132,6 +132,15 @@ function ModuleTemplate({ moduleName, moduleOwner, fields }) {
     setFormData({ ...formData, [fieldName]: value });
   };
 
+  const handleFileChange = (fieldName, file) => {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      setFormData({ ...formData, [fieldName]: e.target.result });
+    };
+    reader.readAsDataURL(file);
+  };
+
   // Detecta si el error es de RLS / permisos
   const isRLSError = errorMsg && (
     errorMsg.includes('row-level') ||
@@ -208,7 +217,35 @@ ALTER TABLE student_modules DISABLE ROW LEVEL SECURITY;`}
                     {field.label}
                     {field.required && <span className="text-red-500 ml-1">*</span>}
                   </label>
-                  {field.type === 'textarea' ? (
+                  {field.type === 'file' ? (
+                    <div className="flex gap-2">
+                      <input
+                        type="file"
+                        accept={field.accept}
+                        onChange={(e) => handleFileChange(field.name, e.target.files?.[0])}
+                        className="hidden"
+                        id={`file-${field.name}`}
+                        required={field.required}
+                      />
+                      <label
+                        htmlFor={`file-${field.name}`}
+                        className="flex-1 px-4 py-2 border-2 border-dashed border-gray-300 rounded-lg text-center cursor-pointer hover:border-blue-500 hover:bg-blue-50 transition-colors"
+                      >
+                        <span className="text-gray-600">
+                          {formData[field.name] ? '✓ Imagen seleccionada' : 'Agregar imagen'}
+                        </span>
+                      </label>
+                      {formData[field.name] && (
+                        <button
+                          type="button"
+                          onClick={() => setFormData({ ...formData, [field.name]: '' })}
+                          className="px-3 py-2 bg-red-100 text-red-600 rounded hover:bg-red-200 transition-colors"
+                        >
+                          ✕
+                        </button>
+                      )}
+                    </div>
+                  ) : field.type === 'textarea' ? (
                     <textarea
                       value={formData[field.name] || ''}
                       onChange={(e) => handleInputChange(field.name, e.target.value)}
@@ -301,21 +338,40 @@ ALTER TABLE student_modules DISABLE ROW LEVEL SECURITY;`}
             <div className="space-y-4">
               {items.map((item) => (
                 <div key={item.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
-                  <div className="flex justify-between items-start">
+                  <div className="flex justify-between items-start gap-4">
+                    {/* Imagen */}
+                    {item.content.imagen && (
+                      <div className="flex-shrink-0">
+                        <img 
+                          src={item.content.imagen} 
+                          alt={item.content.concepto || 'Imagen'}
+                          className="w-32 h-32 object-cover rounded-lg border border-gray-200"
+                        />
+                      </div>
+                    )}
+                    
+                    {/* Contenido */}
                     <div className="flex-1">
-                      {fields.map((field) => (
-                        <div key={field.name} className="mb-2">
-                          <span className="font-medium text-gray-700">{field.label}: </span>
-                          <span className="text-gray-600">
-                            {item.content[field.name] || 'N/A'}
-                          </span>
-                        </div>
-                      ))}
+                      {fields.map((field) => {
+                        // Saltar imagen para mostrarla en otro lado
+                        if (field.name === 'imagen') return null;
+                        
+                        return (
+                          <div key={field.name} className="mb-2">
+                            <span className="font-medium text-gray-700">{field.label}: </span>
+                            <span className="text-gray-600">
+                              {item.content[field.name] || 'N/A'}
+                            </span>
+                          </div>
+                        );
+                      })}
                       <div className="text-xs text-gray-400 mt-2">
                         Creado: {new Date(item.created_at).toLocaleString('es-ES')}
                       </div>
                     </div>
-                    <div className="flex gap-2 ml-4">
+                    
+                    {/* Botones */}
+                    <div className="flex gap-2 ml-4 flex-shrink-0">
                       <button
                         onClick={() => handleEdit(item)}
                         className="text-blue-600 hover:text-blue-800 p-2"
