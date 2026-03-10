@@ -1,4 +1,5 @@
 import ModuleTemplate from '../../components/ModuleTemplate';
+import './styles.css';
 
 const fields = [
   { name: 'concepto', label: 'Concepto', type: 'text', required: true },
@@ -9,11 +10,13 @@ const fields = [
 
 function RepositorioDeEnlaces() {
   return (
-    <ModuleTemplate
-      moduleName="Repositorio de Enlaces"
-      moduleOwner="RepositorioDeEnlaces"
-      fields={fields}
-    />
+    <div className="repo-enlaces-wrapper">
+      <ModuleTemplate
+        moduleName="Repositorio de Enlaces"
+        moduleOwner="RepositorioDeEnlaces"
+        fields={fields}
+      />
+    </div>
   );
 }
 
