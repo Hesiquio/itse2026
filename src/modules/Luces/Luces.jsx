@@ -16,6 +16,8 @@ function Luces() {
     const [loading, setLoading] = useState(true);
     const [errorMsg, setErrorMsg] = useState(null);
     const [successMsg, setSuccessMsg] = useState(null);
+    const [rentals, setRentals] = useState([]);
+    const [loadingRentals, setLoadingRentals] = useState(false);
 
     // Estado para el formulario de agregar
     const [showAddForm, setShowAddForm] = useState(false);
@@ -23,10 +25,17 @@ function Luces() {
         id: '', category: 'Lighting', name: '', brand: '', qtyTotal: 1, status: 'Disponible'
     });
 
+    // Módulo Salida/Renta
+    const [rentCart, setRentCart] = useState([]);
+    const [rentForm, setRentForm] = useState({
+        client: '', event: '', dateOut: '', dateReturn: ''
+    });
+
     const MODULE_OWNER = 'Luces';
 
     useEffect(() => {
         fetchItems();
+        fetchRentals();
     }, []);
 
     useEffect(() => {
@@ -35,6 +44,28 @@ function Luces() {
             return () => clearTimeout(t);
         }
     }, [successMsg]);
+
+    const fetchRentals = async () => {
+        try {
+            setLoadingRentals(true);
+            const { data, error } = await supabase
+                .from('student_modules')
+                .select('*')
+                .eq('module_owner', 'Luces_Rentas')
+                .order('created_at', { ascending: false });
+
+            if (error) throw error;
+            const parsedRentals = (data || []).map(row => ({
+                id: row.id,
+                ...row.content
+            }));
+            setRentals(parsedRentals);
+        } catch (error) {
+            console.error('Error fetching rentals:', error.message);
+        } finally {
+            setLoadingRentals(false);
+        }
+    };
 
     const fetchItems = async () => {
         try {
@@ -97,6 +128,139 @@ function Luces() {
         }
     };
 
+    // LOGICA DE SALIDA / RENTA
+    const handleAddToCart = (item) => {
+        if (!rentCart.find(c => c.supabaseId === item.supabaseId)) {
+            setRentCart([...rentCart, { ...item, qtyToRent: 1 }]);
+        }
+    };
+
+    const handleRemoveFromCart = (id) => {
+        setRentCart(rentCart.filter(item => item.supabaseId !== id));
+    };
+
+    const handleUpdateCartQty = (id, newQty) => {
+        setRentCart(rentCart.map(item => {
+            if (item.supabaseId === id) {
+                // Validación para no rentar más de lo disponible en bodega
+                const maxQty = item.qtyIn;
+                return { ...item, qtyToRent: Math.min(Math.max(1, newQty), maxQty) };
+            }
+            return item;
+        }));
+    };
+
+    const handleRentSubmit = async (e) => {
+        e.preventDefault();
+        if (rentCart.length === 0) {
+            setErrorMsg('Debes agregar al menos un equipo para la salida.');
+            return;
+        }
+
+        setErrorMsg(null);
+        setLoading(true);
+
+        try {
+            // Actualizar cada uno de los items en base de datos
+            for (const cartItem of rentCart) {
+                const newQtyIn = cartItem.qtyIn - cartItem.qtyToRent;
+                const newQtyOut = cartItem.qtyOut + cartItem.qtyToRent;
+                const newStatus = newQtyIn === 0 ? 'Rentado' : 'Parcialmente Rentado';
+
+                // Reconstruimos el objeto original sin supabaseId y qtyToRent para el content
+                const originalItem = items.find(i => i.supabaseId === cartItem.supabaseId);
+                const updatedContent = {
+                    ...originalItem,
+                    qtyIn: newQtyIn,
+                    qtyOut: newQtyOut,
+                    status: newStatus
+                };
+                delete updatedContent.supabaseId; // no guardar supabaseId dentro de content
+
+                const { error } = await supabase
+                    .from('student_modules')
+                    .update({ content: updatedContent })
+                    .eq('id', cartItem.supabaseId);
+
+                if (error) throw error;
+            }
+
+            // Registro del historial de rentas
+            const rentRecord = {
+                ...rentForm,
+                dateCreated: new Date().toISOString(),
+                items: rentCart.map(i => ({ id: i.supabaseId, name: i.name, qty: i.qtyToRent }))
+            };
+
+            const { error: rentError } = await supabase
+                .from('student_modules')
+                .insert([{ module_owner: 'Luces_Rentas', content: rentRecord }]);
+
+            if (rentError) {
+                console.error("Error guardando reporte de renta:", rentError);
+            }
+
+            setSuccessMsg('¡Renta confirmada con éxito! Revisa tu inventario.');
+            setRentCart([]);
+            setRentForm({ client: '', event: '', dateOut: '', dateReturn: '' });
+            fetchItems(); // Recargamos inventario
+            fetchRentals(); // Recargar historial de rentas
+            setActiveTab('inventory');
+        } catch (error) {
+            setErrorMsg('Error registrando salida: ' + error.message);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleReturnRent = async (renta) => {
+        try {
+            setLoadingRentals(true);
+
+            for (const rentedItem of renta.items) {
+                const originalItem = items.find(i => i.supabaseId === rentedItem.id);
+                if (originalItem) {
+                    const newQtyIn = originalItem.qtyIn + rentedItem.qty;
+                    const newQtyOut = Math.max(0, originalItem.qtyOut - rentedItem.qty);
+                    const newStatus = newQtyIn === originalItem.qtyTotal ? 'Disponible' : (newQtyIn === 0 ? 'Rentado' : 'Parcialmente Rentado');
+
+                    const updatedContent = {
+                        ...originalItem,
+                        qtyIn: newQtyIn,
+                        qtyOut: newQtyOut,
+                        status: newStatus
+                    };
+                    delete updatedContent.supabaseId;
+
+                    await supabase
+                        .from('student_modules')
+                        .update({ content: updatedContent })
+                        .eq('id', rentedItem.id);
+                }
+            }
+
+            const updatedRentRecord = {
+                ...renta,
+                status: 'Devuelta',
+                returnDate: new Date().toISOString()
+            };
+            delete updatedRentRecord.id;
+
+            await supabase
+                .from('student_modules')
+                .update({ content: updatedRentRecord })
+                .eq('id', renta.id);
+
+            setSuccessMsg('¡Equipos devueltos exitosamente!');
+            fetchItems();
+            fetchRentals();
+        } catch (error) {
+            setErrorMsg('Error al procesar devolución: ' + error.message);
+        } finally {
+            setLoadingRentals(false);
+        }
+    };
+
     return (
         <div className="flex bg-[#121212] min-h-screen text-gray-300 font-sans">
 
@@ -114,8 +278,8 @@ function Luces() {
                         </svg>
                     </div>
                     <div>
-                        <h2 className="font-bold text-white leading-tight mt-1">NANO BANANA</h2>
-                        <p className="text-green-500 text-xs tracking-wider">AV RENTAL</p>
+                        <h2 className="font-bold text-white leading-tight mt-1">JAMR</h2>
+                        <p className="text-green-500 text-xs tracking-wider uppercase">renta-inventario</p>
                     </div>
                 </div>
 
@@ -134,6 +298,15 @@ function Luces() {
                                 <span className="text-left">Inventario<br /><span className="text-xs text-gray-500">(La "Bodega")</span></span>
                             </button>
                         </li>
+                        <li>
+                            <button
+                                onClick={() => setActiveTab('existencia')}
+                                className={`w-full flex items-center px-6 py-3 transition-colors ${activeTab === 'existencia' ? 'bg-[#252825] text-green-500 border-r-2 border-green-500' : 'text-gray-400 hover:text-white hover:bg-[#202220]'}`}
+                            >
+                                <CheckCircle className="w-5 h-5 mr-3" />
+                                <span className="text-left">En Existencia<br /><span className="text-xs text-gray-500">(Disponibles)</span></span>
+                            </button>
+                        </li>
                         <li className="px-4 my-2"><div className="h-px bg-[#2a2c2a] w-full" /></li>
                         <li>
                             <button
@@ -149,6 +322,14 @@ function Luces() {
                                 className={`w-full flex items-center px-6 py-3 transition-colors ${activeTab === 'retorno' ? 'bg-[#252825] text-green-500 border-r-2 border-green-500' : 'text-gray-400 hover:text-white hover:bg-[#202220]'}`}
                             >
                                 <RefreshCw className="w-5 h-5 mr-3 transform rotate-180" /> Retorno / Check-in
+                            </button>
+                        </li>
+                        <li>
+                            <button
+                                onClick={() => setActiveTab('rentas')}
+                                className={`w-full flex items-center px-6 py-3 transition-colors ${activeTab === 'rentas' ? 'bg-[#252825] text-green-500 border-r-2 border-green-500' : 'text-gray-400 hover:text-white hover:bg-[#202220]'}`}
+                            >
+                                <Calendar className="w-5 h-5 mr-3" /> Rentas Realizadas
                             </button>
                         </li>
                     </ul>
@@ -206,8 +387,8 @@ function Luces() {
                         </div>
                     )}
 
-                    {/* TAB: INVENTARIO */}
-                    {activeTab === 'inventory' && (
+                    {/* TAB: INVENTARIO O EXISTENCIA */}
+                    {(activeTab === 'inventory' || activeTab === 'existencia') && (
                         <div className="max-w-7xl mx-auto space-y-6">
 
                             {/* Formulario para agregar (se muestra si showAddForm es true) */}
@@ -282,18 +463,18 @@ function Luces() {
                                                     </div>
                                                 </td>
                                             </tr>
-                                        ) : items.length === 0 ? (
+                                        ) : (activeTab === 'existencia' ? items.filter(i => i.qtyIn > 0) : items).length === 0 ? (
                                             <tr>
                                                 <td colSpan="6" className="px-6 py-12 text-center text-gray-500">
                                                     <div className="flex flex-col items-center justify-center">
                                                         <FileText className="w-12 h-12 mb-3 text-[#2a2c2a]" />
-                                                        <p>Tu inventario está vacío.</p>
-                                                        <p className="text-xs mt-1">Haz clic en "Agregar Nuevo" arriba a la derecha para empezar a registrar equipos.</p>
+                                                        <p>{activeTab === 'existencia' ? 'No hay equipos en existencia.' : 'Tu inventario está vacío.'}</p>
+                                                        {activeTab === 'inventory' && <p className="text-xs mt-1">Haz clic en "Agregar Nuevo" arriba a la derecha para empezar a registrar equipos.</p>}
                                                     </div>
                                                 </td>
                                             </tr>
                                         ) : (
-                                            items.map((item, index) => (
+                                            (activeTab === 'existencia' ? items.filter(i => i.qtyIn > 0) : items).map((item, index) => (
                                                 <tr key={index} className="hover:bg-[#252825] transition-colors [&>td]:px-6 [&>td]:py-4 text-gray-300">
                                                     <td className="font-mono text-xs">{item.id}</td>
                                                     <td>
@@ -337,19 +518,286 @@ function Luces() {
 
                     {/* TAB: SALIDA / RENTA */}
                     {activeTab === 'salida' && (
-                        <div className="max-w-7xl mx-auto h-full flex items-center justify-center text-gray-500 flex-col">
-                            <RefreshCw className="w-16 h-16 mb-4 text-[#2a2c2a]" />
-                            <p>Módulo de Salida / Renta en construcción</p>
-                            <button onClick={() => setActiveTab('inventory')} className="mt-4 text-green-500 hover:text-green-400 underline">Volver al Inventario</button>
+                        <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+                            {/* PANEL IZQUIERDO: SELECCIÓN DE INVENTARIO */}
+                            <div className="lg:col-span-2 space-y-4">
+                                <div className="bg-[#1a1c1a] p-4 rounded-xl border border-[#2a2c2a] flex justify-between items-center">
+                                    <h2 className="text-white font-medium">Módulo de Salida (Nueva Renta)</h2>
+                                    <div className="flex bg-[#121212] rounded-lg p-1 border border-[#2a2c2a]">
+                                        <button className="px-3 py-1 bg-[#252825] text-green-500 rounded font-medium text-xs">Inventory</button>
+                                        <button className="px-3 py-1 text-gray-500 hover:text-white rounded font-medium text-xs">Kits</button>
+                                    </div>
+                                </div>
+
+                                <div className="bg-[#1a1c1a] rounded-xl border border-[#2a2c2a] overflow-hidden">
+                                    <div className="p-4 border-b border-[#2a2c2a] bg-[#202220]">
+                                        <div className="relative">
+                                            <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500" />
+                                            <input
+                                                type="text"
+                                                placeholder="Buscar por nombre o ID para agregar..."
+                                                className="w-full bg-[#121212] border border-[#2a2c2a] rounded-lg pl-9 pr-4 py-2 text-sm text-gray-300 focus:outline-none focus:border-green-500 transition-colors"
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="divide-y divide-[#2a2c2a] max-h-[500px] overflow-y-auto">
+                                        {items.filter(i => i.qtyIn > 0).map(item => (
+                                            <div key={item.supabaseId} className="flex items-center justify-between p-4 hover:bg-[#252825] transition-colors">
+                                                <div className="flex items-center gap-4">
+                                                    <div className="w-10 h-10 bg-[#121212] rounded flex items-center justify-center border border-[#2a2c2a]">
+                                                        {item.category === 'Audio' ? <Speaker className="w-5 h-5 text-gray-400" /> :
+                                                            item.category === 'Lighting' ? <Lightbulb className="w-5 h-5 text-gray-400" /> :
+                                                                <Monitor className="w-5 h-5 text-gray-400" />}
+                                                    </div>
+                                                    <div>
+                                                        <p className="font-medium text-white">{item.name}</p>
+                                                        <p className="text-xs text-gray-500">{item.brand} • <span className="text-green-500 font-medium">Disp: {item.qtyIn}</span></p>
+                                                    </div>
+                                                </div>
+                                                <button
+                                                    onClick={() => handleAddToCart(item)}
+                                                    disabled={rentCart.some(c => c.supabaseId === item.supabaseId)}
+                                                    className="w-8 h-8 rounded bg-[rgba(34,197,94,0.1)] text-green-500 hover:bg-green-500 hover:text-black flex items-center justify-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                                >
+                                                    <Plus className="w-5 h-5" />
+                                                </button>
+                                            </div>
+                                        ))}
+                                        {items.filter(i => i.qtyIn > 0).length === 0 && (
+                                            <div className="p-8 text-center text-gray-500 text-sm">No hay equipos disponibles para rentar.</div>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* PANEL DERECHO: CARRITO DE RENTA */}
+                            <div className="bg-[#1a1c1a] rounded-xl border border-[#2a2c2a] flex flex-col h-fit sticky top-8">
+                                <div className="p-4 border-b border-[#2a2c2a]">
+                                    <h3 className="text-white font-medium text-center">Panel de Selección de Renta</h3>
+                                </div>
+
+                                {/* Lista de Carrito */}
+                                <div className="p-4 flex-1 min-h-[200px] max-h-[300px] overflow-y-auto space-y-3">
+                                    {rentCart.length === 0 ? (
+                                        <div className="h-full flex flex-col items-center justify-center text-gray-500">
+                                            <FileText className="w-8 h-8 mb-2 opacity-50" />
+                                            <p className="text-sm">No has agregado equipos</p>
+                                        </div>
+                                    ) : (
+                                        rentCart.map(cartItem => (
+                                            <div key={cartItem.supabaseId} className="bg-[#121212] border border-[#2a2c2a] rounded p-3 flex flex-col gap-2">
+                                                <div className="flex justify-between items-start">
+                                                    <p className="text-sm text-white font-medium line-clamp-1 pr-2">{cartItem.name}</p>
+                                                    <button onClick={() => handleRemoveFromCart(cartItem.supabaseId)} className="text-gray-500 hover:text-red-400"><X className="w-4 h-4" /></button>
+                                                </div>
+                                                <div className="flex justify-between items-center text-xs">
+                                                    <span className="text-gray-500">Disp: {cartItem.qtyIn}</span>
+                                                    <div className="flex items-center gap-2">
+                                                        <span>Cant:</span>
+                                                        <input
+                                                            type="number"
+                                                            min="1"
+                                                            max={cartItem.qtyIn}
+                                                            value={cartItem.qtyToRent}
+                                                            onChange={(e) => handleUpdateCartQty(cartItem.supabaseId, parseInt(e.target.value))}
+                                                            className="w-16 bg-[#1a1c1a] border border-[#2a2c2a] rounded px-2 py-1 text-white text-center focus:outline-none focus:border-green-500"
+                                                        />
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))
+                                    )}
+                                </div>
+
+                                {/* Formulario Final */}
+                                <div className="p-4 bg-[#202220] border-t border-[#2a2c2a] mt-auto rounded-b-xl">
+                                    <form onSubmit={handleRentSubmit} className="space-y-3 text-sm">
+                                        <div className="flex items-center justify-between">
+                                            <label className="text-gray-400">Evento:</label>
+                                            <input
+                                                type="text" required
+                                                value={rentForm.event} onChange={e => setRentForm({ ...rentForm, event: e.target.value })}
+                                                className="w-40 bg-[#121212] border border-[#2a2c2a] rounded px-2 py-1 text-white focus:outline-none focus:border-green-500"
+                                                placeholder="Ej: Concierto"
+                                            />
+                                        </div>
+                                        <div className="flex items-center justify-between">
+                                            <label className="text-gray-400">Cliente:</label>
+                                            <input
+                                                type="text" required
+                                                value={rentForm.client} onChange={e => setRentForm({ ...rentForm, client: e.target.value })}
+                                                className="w-40 bg-[#121212] border border-[#2a2c2a] rounded px-2 py-1 text-white focus:outline-none focus:border-green-500"
+                                                placeholder="Ej: Eventos S.A."
+                                            />
+                                        </div>
+                                        <div className="flex items-center justify-between">
+                                            <label className="text-gray-400">Fecha Salida:</label>
+                                            <input
+                                                type="date" required
+                                                value={rentForm.dateOut} onChange={e => setRentForm({ ...rentForm, dateOut: e.target.value })}
+                                                className="w-40 bg-[#121212] border border-[#2a2c2a] rounded px-2 py-1 text-white focus:outline-none focus:border-green-500"
+                                                style={{ colorScheme: 'dark' }}
+                                            />
+                                        </div>
+                                        <div className="flex items-center justify-between">
+                                            <label className="text-gray-400">Fecha Retorno:</label>
+                                            <input
+                                                type="date" required
+                                                value={rentForm.dateReturn} onChange={e => setRentForm({ ...rentForm, dateReturn: e.target.value })}
+                                                className="w-40 bg-[#121212] border border-[#2a2c2a] rounded px-2 py-1 text-white focus:outline-none focus:border-green-500"
+                                                style={{ colorScheme: 'dark' }}
+                                            />
+                                        </div>
+
+                                        <button
+                                            type="submit"
+                                            disabled={rentCart.length === 0 || loading}
+                                            className="w-full mt-4 bg-green-500 hover:bg-green-600 disabled:bg-green-900 disabled:text-gray-400 text-black font-semibold rounded-lg py-2.5 transition-colors"
+                                        >
+                                            {loading ? 'Procesando...' : 'Confirmar Renta (Salida)'}
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
                         </div>
                     )}
 
                     {/* TAB: RETORNO */}
                     {activeTab === 'retorno' && (
-                        <div className="max-w-7xl mx-auto h-full flex items-center justify-center text-gray-500 flex-col">
-                            <RefreshCw className="w-16 h-16 mb-4 text-[#2a2c2a] transform rotate-180" />
-                            <p>Módulo de Retorno / Check-in en construcción</p>
-                            <button onClick={() => setActiveTab('inventory')} className="mt-4 text-green-500 hover:text-green-400 underline">Volver al Inventario</button>
+                        <div className="max-w-7xl mx-auto space-y-6">
+                            <div className="bg-[#1a1c1a] rounded-xl border border-[#2a2c2a] overflow-hidden">
+                                <div className="p-4 border-b border-[#2a2c2a] bg-[#202220] flex justify-between items-center">
+                                    <h3 className="text-white font-medium flex items-center gap-2">
+                                        <RefreshCw className="w-5 h-5 text-green-500 transform rotate-180" />
+                                        Módulo de Retorno / Check-in
+                                    </h3>
+                                    <p className="text-xs text-gray-400">Solo rentas activas</p>
+                                </div>
+                                <div className="divide-y divide-[#2a2c2a]">
+                                    {rentals.filter(r => !r.status || r.status === 'Activa').length === 0 ? (
+                                        <div className="p-12 text-center text-gray-500 flex flex-col items-center">
+                                            <CheckCircle className="w-12 h-12 mb-3 text-[#2a2c2a]" />
+                                            <p>No hay rentas activas pendientes de devolución.</p>
+                                        </div>
+                                    ) : (
+                                        rentals.filter(r => !r.status || r.status === 'Activa').map((renta, idx) => (
+                                            <div key={idx} className="p-6 flex flex-col md:flex-row md:items-center justify-between gap-4 hover:bg-[#252825] transition-colors group">
+                                                <div className="flex-1">
+                                                    <div className="flex items-center gap-3 mb-2">
+                                                        <h4 className="text-white font-medium text-lg">{renta.client}</h4>
+                                                        <span className="text-xs bg-yellow-900/30 text-yellow-500 border border-yellow-700/50 px-2 py-0.5 rounded-full">Activa</span>
+                                                    </div>
+                                                    <p className="text-sm text-gray-400 mb-1">Evento: <span className="text-gray-300">{renta.event}</span></p>
+                                                    <p className="text-xs text-gray-500 mb-3">Salida: {renta.dateOut} • Retorno esperado: {renta.dateReturn}</p>
+
+                                                    <div className="bg-[#121212] border border-[#2a2c2a] rounded-lg p-3">
+                                                        <p className="text-xs text-gray-400 mb-2 uppercase tracking-wider font-semibold">Equipos a devolver ({renta.items?.length || 0}):</p>
+                                                        <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm text-gray-300">
+                                                            {renta.items && renta.items.map((it, i) => (
+                                                                <li key={i} className="flex items-center gap-2">
+                                                                    <div className="w-1.5 h-1.5 rounded-full bg-green-500"></div>
+                                                                    <span className="font-medium text-white">{it.qty}x</span> {it.name}
+                                                                </li>
+                                                            ))}
+                                                        </ul>
+                                                    </div>
+                                                </div>
+                                                <div className="flex-shrink-0 flex items-center justify-end">
+                                                    <button
+                                                        onClick={() => handleReturnRent(renta)}
+                                                        className="w-full md:w-auto flex justify-center items-center gap-2 bg-[#202220] border border-[#2a2c2a] text-gray-300 hover:bg-green-500 hover:text-black hover:border-green-500 px-6 py-3 rounded-lg font-medium transition-all"
+                                                    >
+                                                        <RefreshCw className="w-5 h-5 transform rotate-180" />
+                                                        Registrar Devolución Completa
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ))
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* TAB: RENTAS REALIZADAS */}
+                    {activeTab === 'rentas' && (
+                        <div className="max-w-7xl mx-auto space-y-6">
+                            <div className="bg-[#1a1c1a] rounded-xl border border-[#2a2c2a] overflow-hidden">
+                                <div className="p-4 border-b border-[#2a2c2a] bg-[#202220]">
+                                    <h3 className="text-white font-medium">Historial de Rentas</h3>
+                                </div>
+                                <table className="w-full text-left text-sm">
+                                    <thead className="bg-[#202220] text-gray-400 text-xs uppercase font-medium border-b border-[#2a2c2a]">
+                                        <tr className="[&>th]:px-6 [&>th]:py-4">
+                                            <th>Cliente</th>
+                                            <th>Evento</th>
+                                            <th>Fecha Salida</th>
+                                            <th>Fecha Retorno</th>
+                                            <th>Equipos Rentados</th>
+                                            <th>Estado</th>
+                                            <th>Acciones</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-[#2a2c2a]">
+                                        {loadingRentals ? (
+                                            <tr>
+                                                <td colSpan="7" className="px-6 py-12 text-center text-gray-500">
+                                                    <div className="flex justify-center items-center gap-2">
+                                                        <svg className="animate-spin w-5 h-5 text-green-500" fill="none" viewBox="0 0 24 24">
+                                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                                                        </svg>
+                                                        Cargando rentas...
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        ) : rentals.length === 0 ? (
+                                            <tr>
+                                                <td colSpan="7" className="px-6 py-12 text-center text-gray-500">
+                                                    <div className="flex flex-col items-center justify-center">
+                                                        <Calendar className="w-12 h-12 mb-3 text-[#2a2c2a]" />
+                                                        <p>No hay rentas registradas.</p>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        ) : (
+                                            rentals.map((renta, idx) => (
+                                                <tr key={idx} className="hover:bg-[#252825] transition-colors [&>td]:px-6 [&>td]:py-4 text-gray-300">
+                                                    <td className="font-medium text-white">{renta.client}</td>
+                                                    <td>{renta.event}</td>
+                                                    <td>{renta.dateOut}</td>
+                                                    <td>{renta.dateReturn}</td>
+                                                    <td>
+                                                        <ul className="list-disc list-inside text-xs text-gray-400">
+                                                            {renta.items && renta.items.map((it, i) => (
+                                                                <li key={i}>{it.qty}x {it.name}</li>
+                                                            ))}
+                                                        </ul>
+                                                    </td>
+                                                    <td>
+                                                        {renta.status === 'Devuelta' ? (
+                                                            <span className="text-xs font-medium text-green-500 bg-green-900/20 border border-green-500/20 px-2 py-1 rounded-full">Devuelta</span>
+                                                        ) : (
+                                                            <span className="text-xs font-medium text-yellow-500 bg-yellow-900/20 border border-yellow-500/20 px-2 py-1 rounded-full">Activa</span>
+                                                        )}
+                                                    </td>
+                                                    <td>
+                                                        {(!renta.status || renta.status === 'Activa') && (
+                                                            <button
+                                                                onClick={() => handleReturnRent(renta)}
+                                                                className="text-xs bg-[#202220] border border-[#2a2c2a] text-gray-300 hover:bg-green-500 hover:text-black hover:border-green-500 px-3 py-1.5 rounded-lg transition-all"
+                                                            >
+                                                                Devolver
+                                                            </button>
+                                                        )}
+                                                    </td>
+                                                </tr>
+                                            ))
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
                     )}
 
