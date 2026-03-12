@@ -21,6 +21,7 @@ import CitasDeReferenciasAPA from './modules/CitasDeReferenciasAPA/CitasDeRefere
 import Review from './modules/Review/Review';
 import AllForOne from './modules/AllForOne/AllForOne';
 import Luces from './modules/Luces/Luces';
+import Calendario from './modules/Calendario/Calendario';
 
 function App() {
   return (
@@ -48,6 +49,7 @@ function App() {
         <Route path="/review" element={<Review />} />
         <Route path="/all-for-one" element={<AllForOne />} />
         <Route path="/luces" element={<Luces />} />
+        <Route path="/calendario" element={<Calendario />} />
       </Routes>
     </Router>
   );

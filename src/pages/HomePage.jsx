@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { BookOpen, Calculator, Users, CreditCard, User, Link as LinkIcon, Calendar, DollarSign, CheckSquare, Lightbulb, Lock, Clock, BookMarked, AlertCircle, Target, Package, Phone, FileText, Video, Shirt, Zap } from 'lucide-react';
+import { BookOpen, Calculator, Users, CreditCard, User, Link as LinkIcon, Calendar, DollarSign, CheckSquare, Lightbulb, Lock, Clock, BookMarked, AlertCircle, Target, Package, Phone, FileText, Video, Shirt, Zap, CalendarDays } from 'lucide-react';
 
 const modules = [
   { name: 'Gestor de Tareas', path: '/gestor-de-tareas', icon: CheckSquare, description: 'Jhovany_Organiza y gestiona tus tareas académicas' },
@@ -23,6 +23,7 @@ const modules = [
   { name: 'Review', path: '/review', icon: Video, description: 'Felix_Anota links de videos y su descripción' },
   { name: 'AllForOne', path: '/all-for-one', icon: Shirt, description: 'Adrel_Pedidos de sublimadora de ropa' },
   { name: 'Luces', path: '/luces', icon: Zap, description: 'Gestión de circuitos e iluminación' },
+  { name: 'Calendario', path: '/calendario', icon: CalendarDays, description: 'Britani_Eventos importantes, fechas inhábiles y más' },
 ];
 
 function HomePage() {
