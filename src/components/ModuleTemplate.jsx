@@ -15,6 +15,9 @@ function ModuleTemplate({ moduleName, moduleOwner, fields }) {
   const [errorMsg, setErrorMsg] = useState(null);
   const [successMsg, setSuccessMsg] = useState(null);
 
+  // Estado para la vista previa de imagen
+  const [previewImage, setPreviewImage] = useState(null);
+
   useEffect(() => {
     fetchData();
   }, []);
@@ -345,7 +348,8 @@ ALTER TABLE student_modules DISABLE ROW LEVEL SECURITY;`}
                         <img 
                           src={item.content.imagen} 
                           alt={item.content.concepto || 'Imagen'}
-                          className="w-32 h-32 object-cover rounded-lg border border-gray-200"
+                          className="w-32 h-32 object-cover rounded-lg border border-gray-200 cursor-pointer hover:opacity-80 transition-opacity"
+                          onClick={() => setPreviewImage(item.content.imagen)}
                         />
                       </div>
                     )}
@@ -394,6 +398,27 @@ ALTER TABLE student_modules DISABLE ROW LEVEL SECURITY;`}
           )}
         </div>
       </div>
+
+      {/* Modal de vista previa de imagen */}
+      {previewImage && (
+        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50" onClick={() => setPreviewImage(null)}>
+          <div className="relative max-w-4xl max-h-full p-4">
+            <img 
+              src={previewImage} 
+              alt="Vista previa"
+              className="max-w-full max-h-full object-contain rounded-lg"
+              onClick={(e) => e.stopPropagation()}
+            />
+            <button
+              onClick={() => setPreviewImage(null)}
+              className="absolute top-2 right-2 bg-white text-black rounded-full w-8 h-8 flex items-center justify-center hover:bg-gray-200 transition-colors"
+              title="Cerrar"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
