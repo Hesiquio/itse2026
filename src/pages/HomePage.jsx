@@ -9,14 +9,14 @@ const modules = [
   { name: 'Directorio de Profesores', path: '/directorio-de-profesores', icon: User, description: 'Alicia_Información de contacto de profesores' },
   { name: 'Repositorio de Enlaces', path: '/repositorio-de-enlaces', icon: LinkIcon, description: 'Guarda enlaces útiles para tus estudios' },
   { name: 'Planificador de Exámenes', path: '/planificador-de-examenes', icon: Calendar, description: 'Planifica tus fechas de examen' },
-  { name: 'Registro de Gastos', path: '/registro-de-gastos', icon: DollarSign, description: 'Mayra_Controla tus gastos estudiantiles', color: { card: 'bg-emerald-50 border-emerald-200', iconBg: 'bg-emerald-100', iconText: 'text-emerald-600' } },
+  { name: 'Registro de Gastos', path: '/registro-de-gastos', icon: DollarSign, description: 'Mayra_Controla tus gastos estudiantiles', color: { card: 'bg-emerald-500 border-emerald-700', iconBg: 'bg-emerald-700', iconText: 'text-white', titleText: 'text-white', descText: 'text-emerald-100' } },
   { name: 'Control de Asistencias', path: '/control-de-asistencias', icon: CheckSquare, description: 'LuisPat_Registra tu asistencia a clases' },
   { name: 'Ideas para Proyectos', path: '/ideas-para-proyectos', icon: Lightbulb, description: 'Sergio_Guarda ideas para futuros proyectos' },
   { name: 'Gestor de Contraseñas Simulado', path: '/gestor-de-contrasenas-simulado', icon: Lock, description: 'Jorge_Administra tus credenciales de forma segura' },
   { name: 'Horario de Laboratorio', path: '/horario-de-laboratorio', icon: Clock, description: 'Eduard_Gestiona tus horarios de laboratorio' },
   { name: 'Lista de Lecturas', path: '/lista-de-lecturas', icon: BookMarked, description: 'Sheyla_Organiza tus lecturas pendientes' },
   { name: 'Diario de Errores', path: '/diario-de-errores', icon: AlertCircle, description: 'Adrel_Documenta errores y soluciones' },
-  { name: 'Metas del Semestre', path: '/metas-del-semestre', icon: Target, description: 'Solis_Define y da seguimiento a tus metas', color: { card: 'bg-purple-50 border-purple-200', iconBg: 'bg-purple-100', iconText: 'text-purple-600' } },
+  { name: 'Metas del Semestre', path: '/metas-del-semestre', icon: Target, description: 'Solis_Define y da seguimiento a tus metas', color: { card: 'bg-purple-600 border-purple-800', iconBg: 'bg-purple-800', iconText: 'text-white', titleText: 'text-white', descText: 'text-purple-100' } },
   { name: 'Inventario de Componentes', path: '/inventario-de-componentes', icon: Package, description: 'Maria_Gestiona componentes electrónicos' },
   { name: 'Contactos de Equipos', path: '/contactos-de-equipos', icon: Phone, description: 'AlexisVaqueiro_Directorio de compañeros de equipo' },
   { name: 'Citas de Referencias APA', path: '/citas-de-referencias-apa', icon: FileText, description: 'Gestiona tus referencias bibliográficas' },
@@ -53,11 +53,11 @@ function HomePage() {
                   <div className={`rounded-full p-3 mr-4 ${module.color ? module.color.iconBg : 'bg-blue-100'}`}>
                     <Icon className={`w-6 h-6 ${module.color ? module.color.iconText : 'text-blue-600'}`} />
                   </div>
-                  <h2 className="text-xl font-semibold text-gray-800">
+                  <h2 className={`text-xl font-semibold ${module.color ? module.color.titleText : 'text-gray-800'}`}>
                     {module.name}
                   </h2>
                 </div>
-                <p className="text-gray-600 text-sm">
+                <p className={`text-sm ${module.color ? module.color.descText : 'text-gray-600'}`}>
                   {module.description}
                 </p>
               </Link>
