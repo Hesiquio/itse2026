@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 import { ArrowLeft, Plus, Edit, Trash2, Save, X, AlertCircle, CheckCircle } from 'lucide-react';
 
-function ModuleTemplate({ moduleName, moduleOwner, fields, validateContent, exportFilename, renderItem, headerClassName, onItemsUpdate }) {
+function ModuleTemplate({ moduleName, moduleOwner, fields, validateContent, exportFilename, renderItem, headerClassName, onItemsUpdate, additionalButtons = [] }) {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -197,6 +197,7 @@ function ModuleTemplate({ moduleName, moduleOwner, fields, validateContent, expo
                   📄 Exportar CSV
                 </button>
               )}
+              {additionalButtons}
               <button
                 onClick={() => { setShowForm(!showForm); setEditingItem(null); setErrorMsg(null); }}
                 className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-4 py-2 rounded-lg flex items-center shadow transition-colors"
