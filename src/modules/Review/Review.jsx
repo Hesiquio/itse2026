@@ -25,6 +25,25 @@ function Review() {
     setVideos(updated);
   };
 
+  // NUEVA FUNCIÓN PARA ELIMINAR VIDEO
+  const deleteVideo = (index) => {
+    const updated = videos.filter((_, i) => i !== index);
+    setVideos(updated);
+  };
+
+  // NUEVA FUNCIÓN PARA EDITAR VIDEO
+  const editVideo = (index) => {
+    const newTitle = prompt("Nuevo título del video:", videos[index].titulo);
+    const newDesc = prompt("Nueva descripción:", videos[index].descripcion);
+
+    if (newTitle !== null && newDesc !== null) {
+      const updated = [...videos];
+      updated[index].titulo = newTitle;
+      updated[index].descripcion = newDesc;
+      setVideos(updated);
+    }
+  };
+
   const handleSearch = (query) => {
     const filtered = videos.filter((video) =>
       video.titulo.toLowerCase().includes(query.toLowerCase())
@@ -33,8 +52,13 @@ function Review() {
   };
 
   return (
-    <div className={darkMode ? "bg-black text-white min-h-screen" : "bg-white text-black min-h-screen"}>
-      
+    <div
+      className={
+        darkMode
+          ? "bg-black text-white min-h-screen"
+          : "bg-white text-black min-h-screen"
+      }
+    >
       <Navbar
         onSearch={handleSearch}
         toggleSidebar={() => setSidebarOpen(!sidebarOpen)}
@@ -64,8 +88,10 @@ function Review() {
                   <VideoCard
                     key={index}
                     video={video}
-                    onLike={() => likeVideo(index)}
                     darkMode={darkMode}
+                    onLike={() => likeVideo(index)}
+                    onDelete={() => deleteVideo(index)}
+                    onEdit={() => editVideo(index)}
                   />
                 ))}
               </div>
@@ -89,8 +115,10 @@ function Review() {
                     <VideoCard
                       key={index}
                       video={video}
-                      onLike={() => likeVideo(index)}
                       darkMode={darkMode}
+                      onLike={() => likeVideo(index)}
+                      onDelete={() => deleteVideo(index)}
+                      onEdit={() => editVideo(index)}
                     />
                   ))}
               </div>
