@@ -1,9 +1,21 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../../supabaseClient';
-import { CheckCircle, XCircle, Clock, TrendingUp } from 'lucide-react';
+import { CheckCircle, XCircle, Clock, TrendingUp, Filter, X } from 'lucide-react';
 
 export default function DashboardEstadisticas() {
   const [horario, setHorario] = useState([]);
+  const [loading, setLoading] = useState(false);
+  
+  // Filtros
+  const [filtros, setFiltros] = useState({
+    materia: '',
+    asistencia: '',
+    fechaInicio: '',
+    fechaFin: ''
+  });
+  
+  const [materiasDisponibles, setMateriasDisponibles] = useState([]);
+
   const [estadisticas, setEstadisticas] = useState({
     total: 0,
     asistencias: 0,
@@ -15,19 +27,66 @@ export default function DashboardEstadisticas() {
     porActividad: {}
   });
 
+  // Cargar materias disponibles
   useEffect(() => {
-    async function fetchHorario() {
+    async function cargarMaterias() {
       const { data, error } = await supabase
         .from('student_modules')
-        .select('*')
-        .eq('module_owner', 'ControlDeAsistencias_schedule');
+        .select('content->materia')
+        .eq('module_owner', 'ControlDeAsistencias_schedule')
+        .not('content->materia', 'is', null);
+      
       if (!error && data) {
-        setHorario(data);
-        calcularEstadisticas(data);
+        const materias = [...new Set(data.map(r => r.content?.materia).filter(Boolean))].sort();
+        setMateriasDisponibles(materias);
       }
     }
-    fetchHorario();
+    cargarMaterias();
   }, []);
+
+  // Cargar datos con filtros
+  useEffect(() => {
+    async function fetchHorario() {
+      setLoading(true);
+      let query = supabase
+        .from('student_modules')
+        .select('content')
+        .eq('module_owner', 'ControlDeAsistencias_schedule')
+        .not('content->asistencia', 'is', null);
+
+      // Filtro por materia
+      if (filtros.materia) {
+        query = query.eq('content->materia', filtros.materia);
+      }
+
+      // Filtro por tipo de asistencia
+      if (filtros.asistencia) {
+        query = query.eq('content->asistencia', filtros.asistencia);
+      }
+
+      // Filtro por fecha inicio
+      if (filtros.fechaInicio) {
+        query = query.gte('content->fecha', filtros.fechaInicio);
+      }
+
+      // Filtro por fecha fin
+      if (filtros.fechaFin) {
+        query = query.lte('content->fecha', filtros.fechaFin);
+      }
+
+      const { data, error } = await query;
+      
+      if (!error && data) {
+        const registrosValidos = data.filter(r => 
+          r.content && r.content.asistencia && ['Asistió', 'Falta', 'Retardo'].includes(r.content.asistencia)
+        );
+        setHorario(registrosValidos);
+        calcularEstadisticas(registrosValidos);
+      }
+      setLoading(false);
+    }
+    fetchHorario();
+  }, [filtros]);
 
   const calcularEstadisticas = (datos) => {
     let asistencias = 0;
@@ -97,41 +156,131 @@ export default function DashboardEstadisticas() {
     </div>
   );
 
+  const limpiarFiltros = () => {
+    setFiltros({
+      materia: '',
+      asistencia: '',
+      fechaInicio: '',
+      fechaFin: ''
+    });
+  };
+
   return (
     <div className="space-y-8">
-      {/* Tarjetas principales */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <TarjetaEstadistica
-          titulo="Total de Eventos"
-          valor={estadisticas.total}
-          porcentaje="100"
-          icon={TrendingUp}
-          color="border-blue-500 bg-blue-50"
-        />
-        <TarjetaEstadistica
-          titulo="Asistencias"
-          valor={estadisticas.asistencias}
-          porcentaje={estadisticas.porcentajeAsistencia}
-          icon={CheckCircle}
-          color="border-green-500 bg-green-50"
-        />
-        <TarjetaEstadistica
-          titulo="Faltas"
-          valor={estadisticas.faltas}
-          porcentaje={estadisticas.porcentajeFaltas}
-          icon={XCircle}
-          color="border-red-500 bg-red-50"
-        />
-        <TarjetaEstadistica
-          titulo="Retardos"
-          valor={estadisticas.retardos}
-          porcentaje={estadisticas.porcentajeRetardos}
-          icon={Clock}
-          color="border-yellow-500 bg-yellow-50"
-        />
+      {/* Panel de Filtros */}
+      <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+            <Filter className="w-5 h-5" /> Filtros
+          </h3>
+          {(filtros.materia || filtros.asistencia || filtros.fechaInicio || filtros.fechaFin) && (
+            <button
+              onClick={limpiarFiltros}
+              className="flex items-center gap-2 text-red-600 hover:text-red-700 text-sm font-medium"
+            >
+              <X className="w-4 h-4" /> Limpiar
+            </button>
+          )}
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Filtro Materia */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Materia</label>
+            <select
+              value={filtros.materia}
+              onChange={(e) => setFiltros({ ...filtros, materia: e.target.value })}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option value="">Todas las materias</option>
+              {materiasDisponibles.map((materia) => (
+                <option key={materia} value={materia}>
+                  {materia}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Filtro Asistencia */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Estado</label>
+            <select
+              value={filtros.asistencia}
+              onChange={(e) => setFiltros({ ...filtros, asistencia: e.target.value })}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option value="">Todos los estados</option>
+              <option value="Asistió">Asistió</option>
+              <option value="Falta">Falta</option>
+              <option value="Retardo">Retardo</option>
+            </select>
+          </div>
+
+          {/* Filtro Fecha Inicio */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Desde</label>
+            <input
+              type="date"
+              value={filtros.fechaInicio}
+              onChange={(e) => setFiltros({ ...filtros, fechaInicio: e.target.value })}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+          </div>
+
+          {/* Filtro Fecha Fin */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Hasta</label>
+            <input
+              type="date"
+              value={filtros.fechaFin}
+              onChange={(e) => setFiltros({ ...filtros, fechaFin: e.target.value })}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+          </div>
+        </div>
       </div>
 
-      {/* Gráfico de barras simple */}
+      {loading && (
+        <div className="bg-blue-50 rounded-xl border border-blue-200 p-4 text-center">
+          <p className="text-blue-700 font-medium">Cargando datos...</p>
+        </div>
+      )}
+
+      {!loading && (
+        <>
+          {/* Tarjetas principales */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <TarjetaEstadistica
+              titulo="Total de Eventos"
+              valor={estadisticas.total}
+              porcentaje="100"
+              icon={TrendingUp}
+              color="border-blue-500 bg-blue-50"
+            />
+            <TarjetaEstadistica
+              titulo="Asistencias"
+              valor={estadisticas.asistencias}
+              porcentaje={estadisticas.porcentajeAsistencia}
+              icon={CheckCircle}
+              color="border-green-500 bg-green-50"
+            />
+            <TarjetaEstadistica
+              titulo="Faltas"
+              valor={estadisticas.faltas}
+              porcentaje={estadisticas.porcentajeFaltas}
+              icon={XCircle}
+              color="border-red-500 bg-red-50"
+            />
+            <TarjetaEstadistica
+              titulo="Retardos"
+              valor={estadisticas.retardos}
+              porcentaje={estadisticas.porcentajeRetardos}
+              icon={Clock}
+              color="border-yellow-500 bg-yellow-50"
+            />
+          </div>
+
+          {/* Gráfico de barras simple */}
       <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
         <h3 className="text-xl font-bold text-gray-800 mb-6">Proporción de Asistencia</h3>
         <div className="flex items-end justify-center gap-8 h-64">
@@ -219,6 +368,8 @@ export default function DashboardEstadisticas() {
             No hay eventos registrados. Agrega un horario para ver estadísticas.
           </p>
         </div>
+      )}
+        </>
       )}
     </div>
   );

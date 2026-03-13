@@ -3,13 +3,13 @@
 import { useState } from 'react';
 import { supabase } from '../../supabaseClient';
 import HorarioVistaSemanal from './HorarioVistaSemanal';
-import HorarioVistaMensual from './HorarioVistaMensual';
 import DashboardEstadisticas from './DashboardEstadisticas';
-import { Calendar, Clock, Plus, X, Save, BarChart3 } from 'lucide-react';
+import { Calendar, Clock, Plus, X, Save, BarChart3, ArrowLeft, AlertCircle } from 'lucide-react';
 
 function ControlDeAsistencias() {
   const [showForm, setShowForm] = useState(false);
   const [viewType, setViewType] = useState(''); // '' | 'semana' | 'mes' | 'dashboard'
+  const [guardandoFaltas, setGuardandoFaltas] = useState(false);
   const [formData, setFormData] = useState({
     materia: '',
     dia: '',
@@ -38,9 +38,57 @@ function ControlDeAsistencias() {
     }
   };
 
+  const guardarFaltasAutomaticamente = async () => {
+    setGuardandoFaltas(true);
+    try {
+      const { data, error } = await supabase
+        .from('student_modules')
+        .select('*')
+        .eq('module_owner', 'ControlDeAsistencias_schedule')
+        .or('content->asistencia.is.null,content->asistencia.eq.No registrada');
+
+      if (error) throw error;
+
+      if (data && data.length > 0) {
+        const actualizaciones = data.map(async (registro) => {
+          return supabase
+            .from('student_modules')
+            .update({ content: { ...registro.content, asistencia: 'Falta' } })
+            .eq('id', registro.id);
+        });
+
+        await Promise.all(actualizaciones);
+        console.log('Faltas guardadas automáticamente');
+      }
+    } catch (error) {
+      console.error('Error al guardar faltas:', error.message);
+    } finally {
+      setGuardandoFaltas(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 pb-10">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Barra de herramientas superior */}
+        <div className="flex items-center justify-between gap-4 pt-8 pb-6">
+          <button
+            onClick={() => window.history.back()}
+            className="flex items-center gap-2 px-4 py-2 text-gray-700 hover:text-gray-900 font-medium transition-colors"
+          >
+            <ArrowLeft className="w-5 h-5" />
+            Volver
+          </button>
+          <button
+            onClick={guardarFaltasAutomaticamente}
+            disabled={guardandoFaltas}
+            className="flex items-center gap-2 px-6 py-2 bg-red-500 hover:bg-red-600 disabled:opacity-50 text-white rounded-lg font-semibold transition-colors"
+          >
+            <AlertCircle className="w-5 h-5" />
+            {guardandoFaltas ? 'Guardando faltas...' : 'Marcar faltas automáticamente'}
+          </button>
+        </div>
+
         <div className="py-8">
           <h1 className="text-4xl font-bold text-gray-800 mb-2">Control de Asistencias</h1>
           <p className="text-gray-600">Planifica tu horario y registra tu asistencia</p>
@@ -161,17 +209,7 @@ function ControlDeAsistencias() {
               <Clock className="w-5 h-5" />
               Vista Semanal
             </button>
-            <button
-              onClick={() => setViewType(viewType === 'mes' ? '' : 'mes')}
-              className={`flex-1 px-6 py-4 rounded-lg font-semibold transition-all duration-300 flex items-center justify-center gap-2 ${
-                viewType === 'mes'
-                  ? 'bg-gradient-to-r from-purple-600 to-purple-700 text-white shadow-lg scale-105'
-                  : 'bg-white text-gray-700 border-2 border-gray-200 hover:border-purple-400 hover:shadow-md'
-              }`}
-            >
-              <Calendar className="w-5 h-5" />
-              Vista Mensual
-            </button>
+
             <button
               onClick={() => setViewType(viewType === 'dashboard' ? '' : 'dashboard')}
               className={`flex-1 px-6 py-4 rounded-lg font-semibold transition-all duration-300 flex items-center justify-center gap-2 ${
@@ -188,7 +226,6 @@ function ControlDeAsistencias() {
 
         <div className="mt-8">
           {viewType === 'semana' && <HorarioVistaSemanal />}
-          {viewType === 'mes' && <HorarioVistaMensual />}
           {viewType === 'dashboard' && <DashboardEstadisticas />}
         </div>
       </div>
