@@ -1,6 +1,7 @@
 import { useState } from "react";
 
-function ReviewForm({ onAdd }) {
+function ReviewForm({ onAdd, darkMode }) {
+
   const [titulo, setTitulo] = useState("");
   const [url, setUrl] = useState("");
   const [descripcion, setDescripcion] = useState("");
@@ -18,14 +19,19 @@ function ReviewForm({ onAdd }) {
   return (
     <form
       onSubmit={handleSubmit}
-      className="bg-gray-100 p-4 rounded-xl shadow-md"
+      className={`p-4 rounded-xl shadow-md ${
+        darkMode ? "bg-gray-900" : "bg-gray-100"
+      }`}
     >
+
       <input
         type="text"
         placeholder="Título del video"
         value={titulo}
         onChange={(e) => setTitulo(e.target.value)}
-        className="w-full p-2 mb-3 rounded"
+        className={`w-full p-2 mb-3 rounded ${
+          darkMode ? "bg-gray-800 text-white" : "bg-white text-black"
+        }`}
         required
       />
 
@@ -34,7 +40,9 @@ function ReviewForm({ onAdd }) {
         placeholder="Link de YouTube"
         value={url}
         onChange={(e) => setUrl(e.target.value)}
-        className="w-full p-2 mb-3 rounded"
+        className={`w-full p-2 mb-3 rounded ${
+          darkMode ? "bg-gray-800 text-white" : "bg-white text-black"
+        }`}
         required
       />
 
@@ -42,7 +50,9 @@ function ReviewForm({ onAdd }) {
         placeholder="Descripción"
         value={descripcion}
         onChange={(e) => setDescripcion(e.target.value)}
-        className="w-full p-2 mb-3 rounded"
+        className={`w-full p-2 mb-3 rounded ${
+          darkMode ? "bg-gray-800 text-white" : "bg-white text-black"
+        }`}
       />
 
       <button
@@ -51,6 +61,7 @@ function ReviewForm({ onAdd }) {
       >
         Subir Video
       </button>
+
     </form>
   );
 }

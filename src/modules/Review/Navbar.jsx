@@ -1,4 +1,9 @@
+import { useNavigate } from "react-router-dom";
+
 function Navbar({ onSearch, toggleSidebar, darkMode, setDarkMode }) {
+
+  const navigate = useNavigate();
+
   const handleSearch = (e) => {
     e.preventDefault();
     const query = e.target.search.value;
@@ -7,13 +12,15 @@ function Navbar({ onSearch, toggleSidebar, darkMode, setDarkMode }) {
 
   return (
     <div className="flex items-center justify-between px-6 py-3 bg-red-600 text-white">
+
       <button onClick={toggleSidebar} className="text-2xl">
         ☰
       </button>
 
+      {/* BOTÓN PARA REGRESAR A LA PLATAFORMA */}
       <h1
         className="text-xl font-bold cursor-pointer"
-        onClick={() => onSearch("")}
+        onClick={() => navigate("/")}
       >
         DevTube Academy
       </h1>
@@ -36,6 +43,7 @@ function Navbar({ onSearch, toggleSidebar, darkMode, setDarkMode }) {
       >
         {darkMode ? "☀️" : "🌙"}
       </button>
+
     </div>
   );
 }
