@@ -1,12 +1,26 @@
 import { useState, useEffect } from 'react';
 import { Moon, Sun, Trophy, X } from 'lucide-react';
 import { supabase } from '../../supabaseClient';
-import ModuleTemplate from '../../components/ModuleTemplate';
+import RepositorioDeEnlacesTemplate from './RepositorioDeEnlacesTemplate';
 import './styles.css';
 
 const fields = [
   { name: 'concepto', label: 'Concepto', type: 'text', required: true },
   { name: 'descripcion', label: 'Descripción', type: 'textarea', required: true },
+  {
+    name: 'categoria',
+    label: 'Categoría',
+    type: 'select',
+    required: true,
+    options: [
+      '👗 Vestimenta',
+      '🎨 Paletas de color',
+      '🧍 Personajes',
+      '🌆 Fondos / Escenarios',
+      '✏️ Estilo de ilustración',
+      '💡 Inspiración general',
+    ],
+  },
   { name: 'imagen', label: 'Imagen', type: 'file', accept: 'image/*', required: false },
   { name: 'enlace', label: 'Enlace', type: 'url', required: true },
 ];
@@ -62,6 +76,10 @@ const achievements = [
 function RepositorioDeEnlaces() {
   const [isDarkMode, setIsDarkMode] = useState(true);
   const [items, setItems] = useState([]);
+  const [usedSearch, setUsedSearch] = useState(() => {
+    const stored = localStorage.getItem('repoEnlaces_usedSearch');
+    return stored === 'true';
+  });
   const [showAchievements, setShowAchievements] = useState(false);
   const [achievementTab, setAchievementTab] = useState('pending'); // 'pending' or 'unlocked'
   const [userAchievements, setUserAchievements] = useState(achievements);
@@ -74,7 +92,13 @@ function RepositorioDeEnlaces() {
     if (items.length > 0) {
       calculateAchievements();
     }
-  }, [items]);
+  }, [items, usedSearch]);
+
+  useEffect(() => {
+    if (usedSearch) {
+      localStorage.setItem('repoEnlaces_usedSearch', 'true');
+    }
+  }, [usedSearch]);
 
   const fetchItems = async () => {
     try {
@@ -114,6 +138,12 @@ function RepositorioDeEnlaces() {
         case 'curador':
           unlocked = items.every(item => item.content.descripcion && item.content.descripcion.trim() !== '');
           break;
+        case 'etiquetador':
+          unlocked = items.some(item => item.content?.categoria?.trim());
+          break;
+        case 'curioso':
+          unlocked = usedSearch;
+          break;
         case 'nocturno':
           unlocked = isDarkMode; // Assuming activating dark mode unlocks it
           break;
@@ -146,10 +176,11 @@ function RepositorioDeEnlaces() {
           {isDarkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
         </button>
       </div>
-      <ModuleTemplate
+      <RepositorioDeEnlacesTemplate
         moduleName="Repositorio de Enlaces"
         moduleOwner="RepositorioDeEnlaces"
         fields={fields}
+        onSearchUsed={() => setUsedSearch(true)}
       />
 
       {/* Modal de logros */}
