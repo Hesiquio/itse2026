@@ -22,12 +22,27 @@ export function useControlDePrestamos() {
 
     const closeConfirm = () => setConfirmDialog({ show: false, id: null });
 
-    const fetchCounts = useCallback(async () => {
+    const fetchCounts = useCallback(async (sTerm: string) => {
         try {
+            // Creamos una función para obtener una consulta limpia cada vez, 
+            // evitando mutaciones accidentales entre las llamadas del Promise.all
+            const getFreshQuery = () => supabase
+                .from('student_modules')
+                .select('id', { count: 'exact', head: true })
+                .eq('module_owner', MODULE_OWNER);
+
+            const applySearch = (q: any) => {
+                if (sTerm.trim()) {
+                    const safe = `%${sTerm}%`;
+                    return q.or(`content->>articulo.ilike.${safe},content->>persona.ilike.${safe}`);
+                }
+                return q;
+            };
+
             const [totalRes, activosRes, devueltosRes] = await Promise.all([
-                supabase.from('student_modules').select('id', { count: 'exact', head: true }).eq('module_owner', MODULE_OWNER),
-                supabase.from('student_modules').select('id', { count: 'exact', head: true }).eq('module_owner', MODULE_OWNER).contains('content', { estado: 'Prestado' }),
-                supabase.from('student_modules').select('id', { count: 'exact', head: true }).eq('module_owner', MODULE_OWNER).contains('content', { estado: 'Devuelto' })
+                applySearch(getFreshQuery()),
+                applySearch(getFreshQuery().contains('content', { estado: 'Prestado' })),
+                applySearch(getFreshQuery().contains('content', { estado: 'Devuelto' }))
             ]);
 
             setCounts({
@@ -46,8 +61,7 @@ export function useControlDePrestamos() {
             let query = supabase
                 .from('student_modules')
                 .select('id, content')
-                .eq('module_owner', MODULE_OWNER)
-                .order('created_at', { ascending: false });
+                .eq('module_owner', MODULE_OWNER);
 
             if (statusFilter !== 'Todos') {
                 query = query.contains('content', { estado: statusFilter });
@@ -55,14 +69,16 @@ export function useControlDePrestamos() {
 
             if (searchTerm.trim()) {
                 const searchSafe = `%${searchTerm}%`;
+                // El uso de .or con ilike sobre JSONB no usa el índice GIN estándar de contención,
+                // pero asegura que el filtrado se realice estrictamente en la base de datos.
                 query = query.or(`content->>articulo.ilike.${searchSafe},content->>persona.ilike.${searchSafe}`);
             }
 
-            const { data, error } = await query;
+            const { data, error } = await query.order('created_at', { ascending: false });
             if (error) throw error;
 
             setItems(data as LoanItem[] || []);
-            fetchCounts();
+            fetchCounts(searchTerm);
         } catch (error: any) {
             console.error('Error fetching data:', error.message);
         } finally {
@@ -86,7 +102,7 @@ export function useControlDePrestamos() {
             if (error) throw error;
             if (data) {
                 setItems([data[0] as LoanItem, ...items]);
-                fetchCounts();
+                fetchCounts(searchTerm);
                 resetForm();
                 showNotification('¡Registro agregado correctamente!');
             }
@@ -122,7 +138,7 @@ export function useControlDePrestamos() {
 
             if (error) throw error;
             setItems(items.filter((item) => item.id !== id));
-            fetchCounts();
+            fetchCounts(searchTerm);
             showNotification('Registro eliminado del sistema', 'success');
             closeConfirm();
         } catch (error: any) {
@@ -148,7 +164,7 @@ export function useControlDePrestamos() {
 
             if (error) throw error;
             setItems(prevItems => prevItems.map((i) => (i.id === item.id ? { ...i, content: newContent } : i)));
-            fetchCounts();
+            fetchCounts(searchTerm);
             showNotification(`Estado actualizado a: ${newStatus}`);
         } catch (error: any) {
             console.error('Error toggling status:', error.message);

@@ -9,7 +9,7 @@ import {
 
 import { useControlDePrestamos } from './useControlDePrestamos';
 import { QUICK_DATES, QUICK_HOURS } from './constants';
-import React, { memo } from 'react';
+import React, { memo, useEffect } from 'react';
 
 // ── Sub-componente para el Hero (Memorizado para rendimiento) ──
 const HeroHeader = memo(() => (
@@ -55,6 +55,11 @@ function ControlDePrestamos() {
         setConfirmDialog, counts, showNotification, closeConfirm,
         addData, updateData, deleteData, toggleStatus, resetForm, handleEdit, extendLoan
     } = useControlDePrestamos();
+
+    // Log para depuración en vivo
+    useEffect(() => {
+        console.log('Loan Control Render:', { itemsCount: items?.length, loading, counts });
+    }, [items, loading, counts]);
 
     // ── Form helpers ──────────────────────────────────────
 
@@ -125,14 +130,14 @@ function ControlDePrestamos() {
             return {
                 bg: 'bg-emerald-50',
                 text: 'text-emerald-700',
-                icon: <CheckCircle2 className="w-4 h-4" />,
+                Icon: CheckCircle2,
                 accent: 'bg-emerald-500'
             };
         }
         return {
             bg: 'bg-amber-50',
             text: 'text-amber-700',
-            icon: <Clock className="w-4 h-4" />,
+            Icon: Clock,
             accent: 'bg-amber-500'
         };
     };
@@ -435,6 +440,8 @@ function ControlDePrestamos() {
                                     const today = new Date();
                                     today.setHours(0, 0, 0, 0);
 
+                                    if (!Array.isArray(items)) return null;
+
                                     return items.map((item, idx) => {
                                         const content = item.content || {};
                                         const status = getStatusStyle(content.estado);
@@ -455,14 +462,14 @@ function ControlDePrestamos() {
                                                     {/* Sección de Icono y Articulo */}
                                                     <div className="flex items-center gap-4 w-full md:w-1/3 border-b md:border-b-0 md:border-r border-gray-50 pb-4 md:pb-0 md:pr-6">
                                                         <div className={`w-12 h-12 rounded-xl ${status.bg} flex items-center justify-center shrink-0 shadow-inner group-hover:scale-105 transition-transform duration-500`}>
-                                                            <Package className={`w-6 h-6 ${status.text}`} />
+                                                            <status.Icon className={`w-6 h-6 ${status.text}`} />
                                                         </div>
                                                         <div className="min-w-0">
                                                             <h3 className="text-xl font-black text-gray-800 truncate group-hover:text-blue-700 transition-colors lowercase first-letter:uppercase">
                                                                 {item.content?.articulo || 'Sin nombre'}
                                                             </h3>
                                                             <div className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest mt-1 ${status.bg} ${status.text}`}>
-                                                                {React.cloneElement(status.icon as React.ReactElement, { className: 'w-3 h-3' })}
+                                                                <status.Icon className="w-3 h-3" />
                                                                 {item.content?.estado || 'Prestado'}
                                                             </div>
                                                         </div>
