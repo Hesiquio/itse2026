@@ -1,23 +1,34 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { supabase } from '../supabaseClient';
+import { supabase } from '../../supabaseClient';
 import { ArrowLeft, Plus, Edit, Trash2, Save, X, AlertCircle, CheckCircle } from 'lucide-react';
 
-function ModuleTemplate({ moduleName, moduleOwner, fields }) {
+function RepositorioDeEnlacesTemplate({ moduleName, moduleOwner, fields, onSearchUsed }) {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
   const [formData, setFormData] = useState({});
   const [saving, setSaving] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [usedSearch, setUsedSearch] = useState(false);
 
   // Estado para mostrar errores y mensajes de éxito en pantalla
   const [errorMsg, setErrorMsg] = useState(null);
   const [successMsg, setSuccessMsg] = useState(null);
 
+  // Estado para la vista previa de imagen
+  const [previewImage, setPreviewImage] = useState(null);
+
   useEffect(() => {
     fetchData();
   }, []);
+
+  useEffect(() => {
+    if (usedSearch && typeof onSearchUsed === 'function') {
+      onSearchUsed();
+    }
+  }, [usedSearch, onSearchUsed]);
 
   // Oculta el mensaje de éxito tras 3 segundos
   useEffect(() => {
@@ -150,6 +161,23 @@ function ModuleTemplate({ moduleName, moduleOwner, fields }) {
     errorMsg.includes('permission')
   );
 
+  const filteredItems = items.filter((item) => {
+    const lower = searchTerm.toLowerCase();
+    if (!lower) return true;
+    const { concepto = '', descripcion = '' } = item.content || {};
+    return (
+      concepto.toLowerCase().includes(lower) ||
+      descripcion.toLowerCase().includes(lower)
+    );
+  });
+
+  const handleSearchChange = (value) => {
+    setSearchTerm(value);
+    if (value.trim() && !usedSearch) {
+      setUsedSearch(true);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="container mx-auto px-4 py-8">
@@ -158,15 +186,23 @@ function ModuleTemplate({ moduleName, moduleOwner, fields }) {
             <ArrowLeft className="w-4 h-4 mr-2" />
             Volver al inicio
           </Link>
-          <div className="flex justify-between items-center">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <h1 className="text-4xl font-bold text-gray-800">{moduleName}</h1>
-            <button
-              onClick={() => { setShowForm(!showForm); setEditingItem(null); setErrorMsg(null); }}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center transition-colors"
-            >
-              {showForm ? <X className="w-4 h-4 mr-2" /> : <Plus className="w-4 h-4 mr-2" />}
-              {showForm ? 'Cancelar' : 'Agregar Nuevo'}
-            </button>
+            <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+              <input
+                value={searchTerm}
+                onChange={(e) => handleSearchChange(e.target.value)}
+                placeholder="Buscar..."
+                className="w-full sm:w-72 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <button
+                onClick={() => { setShowForm(!showForm); setEditingItem(null); setErrorMsg(null); }}
+                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center transition-colors"
+              >
+                {showForm ? <X className="w-4 h-4 mr-2" /> : <Plus className="w-4 h-4 mr-2" />}
+                {showForm ? 'Cancelar' : 'Agregar Nuevo'}
+              </button>
+            </div>
           </div>
         </div>
 
@@ -330,13 +366,13 @@ ALTER TABLE student_modules DISABLE ROW LEVEL SECURITY;`}
               </svg>
               Cargando datos...
             </div>
-          ) : items.length === 0 ? (
+          ) : filteredItems.length === 0 ? (
             <p className="text-gray-500 text-center py-8">
               No hay datos aún. Haz clic en "Agregar Nuevo" para empezar.
             </p>
           ) : (
             <div className="space-y-4">
-              {items.map((item) => (
+              {filteredItems.map((item) => (
                 <div key={item.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
                   <div className="flex justify-between items-start gap-4">
                     {/* Imagen */}
@@ -345,17 +381,18 @@ ALTER TABLE student_modules DISABLE ROW LEVEL SECURITY;`}
                         <img 
                           src={item.content.imagen} 
                           alt={item.content.concepto || 'Imagen'}
-                          className="w-32 h-32 object-cover rounded-lg border border-gray-200"
+                          className="w-32 h-32 object-cover rounded-lg border border-gray-200 cursor-pointer hover:opacity-80 transition-opacity"
+                          onClick={() => setPreviewImage(item.content.imagen)}
                         />
                       </div>
                     )}
-                    
+
                     {/* Contenido */}
                     <div className="flex-1">
                       {fields.map((field) => {
                         // Saltar imagen para mostrarla en otro lado
                         if (field.name === 'imagen') return null;
-                        
+
                         return (
                           <div key={field.name} className="mb-2">
                             <span className="font-medium text-gray-700">{field.label}: </span>
@@ -369,7 +406,7 @@ ALTER TABLE student_modules DISABLE ROW LEVEL SECURITY;`}
                         Creado: {new Date(item.created_at).toLocaleString('es-ES')}
                       </div>
                     </div>
-                    
+
                     {/* Botones */}
                     <div className="flex gap-2 ml-4 flex-shrink-0">
                       <button
@@ -394,8 +431,29 @@ ALTER TABLE student_modules DISABLE ROW LEVEL SECURITY;`}
           )}
         </div>
       </div>
+
+      {/* Modal de vista previa de imagen */}
+      {previewImage && (
+        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50" onClick={() => setPreviewImage(null)}>
+          <div className="relative max-w-4xl max-h-full p-4">
+            <img 
+              src={previewImage} 
+              alt="Vista previa"
+              className="max-w-full max-h-full object-contain rounded-lg"
+              onClick={(e) => e.stopPropagation()}
+            />
+            <button
+              onClick={() => setPreviewImage(null)}
+              className="absolute top-2 right-2 bg-white text-black rounded-full w-8 h-8 flex items-center justify-center hover:bg-gray-200 transition-colors"
+              title="Cerrar"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
-export default ModuleTemplate;
+export default RepositorioDeEnlacesTemplate;
