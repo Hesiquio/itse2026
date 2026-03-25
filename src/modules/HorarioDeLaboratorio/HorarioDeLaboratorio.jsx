@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '../../supabaseClient';
 import { Link } from 'react-router-dom';
 import { ArrowLeft, Plus, Edit, Trash2, Save, X, AlertCircle, CheckCircle } from 'lucide-react';
@@ -13,6 +13,7 @@ const fields = [
   { name: 'hora_inicio', label: 'Hora Inicio', type: 'time', required: true, min: MIN_TIME, max: MAX_TIME },
   { name: 'hora_fin', label: 'Hora Fin', type: 'time', required: true, min: MIN_TIME, max: MAX_TIME },
   { name: 'actividad', label: 'Actividad', type: 'text', required: true },
+  { name: 'equipamiento', label: 'Equipos o recursos requeridos (Opcional)', type: 'text', required: false },
 ];
 
 function HorarioDeLaboratorio() {
@@ -25,6 +26,8 @@ function HorarioDeLaboratorio() {
   const [saving, setSaving] = useState(false);
   const [errorMsg, setErrorMsg] = useState(null);
   const [successMsg, setSuccessMsg] = useState(null);
+  const [viewMode, setViewMode] = useState('Semana'); // Filtros principales
+  const [referenceDate, setReferenceDate] = useState(new Date());
 
   useEffect(() => {
     fetchData();
@@ -68,12 +71,31 @@ function HorarioDeLaboratorio() {
       return 'La hora de fin debe ser posterior a la hora de inicio.';
     }
     
+    // Check recurrence overlaps
+    let datesToCheck = [];
+    if (!editItem && data.es_recurrente && data.fecha_fin_recurrencia) {
+      if (data.fecha_fin_recurrencia <= data.dia) {
+         return 'La fecha de fin de recurrencia debe ser mayor a la fecha de inicio.';
+      }
+      let currentDate = new Date(data.dia + 'T00:00:00');
+      const endDate = new Date(data.fecha_fin_recurrencia + 'T23:59:59');
+      while (currentDate <= endDate) {
+        datesToCheck.push(currentDate.toISOString().split('T')[0]);
+        if (data.frecuencia === 'Diario') currentDate.setDate(currentDate.getDate() + 1);
+        else currentDate.setDate(currentDate.getDate() + 7);
+      }
+    } else {
+      datesToCheck.push(data.dia);
+    }
+    
     // Check overlaps
-    const sameDay = items.filter(i => i.content.dia === data.dia && i.id !== editItem?.id);
-    if (sameDay.length > 0) {
-      for (let i of sameDay) {
-        if (!(data.hora_fin <= i.content.hora_inicio || data.hora_inicio >= i.content.hora_fin)) {
-          return 'El horario se solapa con otro registro existente en ese día.';
+    for (const d of datesToCheck) {
+      const sameDay = items.filter(i => i.content.dia === d && i.id !== editItem?.id);
+      if (sameDay.length > 0) {
+        for (let i of sameDay) {
+          if (!(data.hora_fin <= i.content.hora_inicio || data.hora_inicio >= i.content.hora_fin)) {
+            return `El horario se solapa con otro registro el día ${d} para la actividad "${i.content.actividad}".`;
+          }
         }
       }
     }
@@ -84,14 +106,42 @@ function HorarioDeLaboratorio() {
     setSaving(true);
     setErrorMsg(null);
     try {
+      let recordsToInsert = [];
+      
+      if (content.es_recurrente && content.fecha_fin_recurrencia) {
+        let currentDate = new Date(content.dia + 'T00:00:00');
+        const endDate = new Date(content.fecha_fin_recurrencia + 'T23:59:59'); // use 23:59:59 to include end date
+        
+        while (currentDate <= endDate) {
+          const recordContent = { ...content, dia: currentDate.toISOString().split('T')[0] };
+          delete recordContent.es_recurrente;
+          delete recordContent.frecuencia;
+          delete recordContent.fecha_fin_recurrencia;
+          
+          recordsToInsert.push({ module_owner: 'HorarioDeLaboratorio', content: recordContent });
+          
+          if (content.frecuencia === 'Diario') {
+            currentDate.setDate(currentDate.getDate() + 1);
+          } else {
+            currentDate.setDate(currentDate.getDate() + 7);
+          }
+        }
+      } else {
+        const recordContent = { ...content };
+        delete recordContent.es_recurrente;
+        delete recordContent.frecuencia;
+        delete recordContent.fecha_fin_recurrencia;
+        recordsToInsert.push({ module_owner: 'HorarioDeLaboratorio', content: recordContent });
+      }
+
       const { data, error } = await supabase
         .from('student_modules')
-        .insert([{ module_owner: 'HorarioDeLaboratorio', content }])
+        .insert(recordsToInsert)
         .select();
 
       if (error) throw error;
-      setItems([data[0], ...items]);
-      setSuccessMsg('¡Registro guardado correctamente!');
+      setItems([...data, ...items]);
+      setSuccessMsg(`¡${recordsToInsert.length} registro(s) guardado(s) correctamente!`);
       resetForm();
     } catch (error) {
       console.error('Error adding data:', error.message);
@@ -145,6 +195,75 @@ function HorarioDeLaboratorio() {
     setEditingItem(null);
     setFormData({});
   };
+
+  const getPeriodRange = (date, mode) => {
+    const d = new Date(date);
+    d.setHours(0, 0, 0, 0);
+    let start, end;
+    if (mode === 'Día') {
+      start = new Date(d);
+      end = new Date(d);
+      end.setHours(23, 59, 59, 999);
+    } else if (mode === 'Semana') {
+      const day = d.getDay();
+      const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+      start = new Date(d.setDate(diff));
+      start.setHours(0, 0, 0, 0);
+      end = new Date(start);
+      end.setDate(start.getDate() + 6);
+      end.setHours(23, 59, 59, 999);
+    } else if (mode === 'Mes') {
+      start = new Date(d.getFullYear(), d.getMonth(), 1);
+      end = new Date(d.getFullYear(), d.getMonth() + 1, 0, 23, 59, 59, 999);
+    } else if (mode === 'Año') {
+      start = new Date(d.getFullYear(), 0, 1);
+      end = new Date(d.getFullYear(), 11, 31, 23, 59, 59, 999);
+    }
+    return { start, end };
+  };
+
+  const shiftDate = (amount) => {
+    const d = new Date(referenceDate);
+    if (viewMode === 'Día') d.setDate(d.getDate() + amount);
+    else if (viewMode === 'Semana') d.setDate(d.getDate() + (amount * 7));
+    else if (viewMode === 'Mes') d.setMonth(d.getMonth() + amount);
+    else if (viewMode === 'Año') d.setFullYear(d.getFullYear() + amount);
+    setReferenceDate(d);
+  };
+
+  const formatPeriod = () => {
+    if (viewMode === 'Todos') return 'Todos';
+    const d = new Date(referenceDate);
+    if (viewMode === 'Mes') {
+      return d.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
+    } else if (viewMode === 'Día') {
+      return d.toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'long' });
+    } else if (viewMode === 'Año') {
+      return `Año ${d.getFullYear()}`;
+    } else if (viewMode === 'Semana') {
+      const { start, end } = getPeriodRange(d, 'Semana');
+      return `Sem ${start.getDate()} ${start.toLocaleDateString('es-ES', {month:'short'})} - ${end.getDate()} ${end.toLocaleDateString('es-ES', {month:'short'})}`;
+    }
+    return '';
+  };
+
+  const displayItems = useMemo(() => {
+    let result = [...items].sort((a,b) => {
+      // Orden crónologico
+      if (a.content.dia !== b.content.dia) return a.content.dia.localeCompare(b.content.dia);
+      return a.content.hora_inicio.localeCompare(b.content.hora_inicio);
+    });
+    
+    if (viewMode !== 'Todos') {
+      const { start, end } = getPeriodRange(referenceDate, viewMode);
+      result = result.filter(item => {
+        const [y, m, d] = item.content.dia.split('-');
+        const itemD = new Date(y, m - 1, d);
+        return itemD >= start && itemD <= end;
+      });
+    }
+    return result;
+  }, [items, viewMode, referenceDate]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -268,22 +387,71 @@ function HorarioDeLaboratorio() {
           </div>
         )}
 
-        {/* Lista de Registros */}
+        {/* Lista de Registros Filtrados y Ordenados */}
         <div className="bg-white/70 backdrop-blur-xl border border-white/50 rounded-3xl shadow-xl shadow-gray-200/50 p-6 md:p-8">
-          <div className="flex items-center justify-between mb-8 border-b border-gray-100 pb-4">
-            <h2 className="text-xl md:text-2xl font-bold tracking-tight text-gray-800 flex items-center">
-              <div className="w-2 h-8 bg-blue-500 rounded-full mr-3"></div>
-              Registros Actuales
-            </h2>
-            <button 
-              onClick={fetchData} 
-              className="text-sm font-semibold text-blue-600 hover:text-blue-800 hover:bg-blue-50 px-3 py-1.5 rounded-lg transition-colors flex items-center"
-            >
-              <svg className="w-4 h-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-              </svg>
-              Actualizar
-            </button>
+          <div className="flex flex-col xl:flex-row items-start xl:items-center justify-between mb-8 gap-6 border-b border-gray-100 pb-6">
+            
+            {/* Título y Subtítulo de Periodo */}
+            <div className="flex flex-col">
+              <h2 className="text-2xl md:text-3xl font-black tracking-tight text-gray-800 flex items-center mb-1">
+                <div className="w-2 h-8 bg-gradient-to-b from-blue-500 to-indigo-600 rounded-full mr-3 shadow-sm"></div>
+                Laboratorios Agendados
+              </h2>
+              <div className="flex items-center text-gray-500 ml-5 font-medium">
+                <svg className="w-4 h-4 mr-1.5 opacity-70" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                <span className="capitalize text-sm font-bold tracking-wide">{viewMode === 'Todos' ? 'Todos los registros históricos' : formatPeriod()}</span>
+              </div>
+            </div>
+
+            {/* Controles Nav + Filtros */}
+            <div className="flex flex-wrap items-center gap-2 w-full xl:w-auto p-1.5 bg-gray-50/80 backdrop-blur-md rounded-2xl border border-gray-200 shadow-inner">
+              
+              {/* Navegación de Fechas (< >) */}
+              {viewMode !== 'Todos' && (
+                <div className="flex items-center bg-white rounded-xl shadow-[0_2px_10px_-4px_rgba(0,0,0,0.1)] border border-gray-100 p-1 mr-1">
+                  <button onClick={() => shiftDate(-1)} className="p-2 hover:bg-blue-50 hover:text-blue-600 rounded-lg text-gray-400 transition-all">
+                    <ArrowLeft className="w-4 h-4" />
+                  </button>
+                  <div className="w-px h-5 bg-gray-200/80 mx-1"></div>
+                  <button onClick={() => shiftDate(1)} className="p-2 hover:bg-blue-50 hover:text-blue-600 rounded-lg text-gray-400 transition-all">
+                    <ArrowLeft className="w-4 h-4 rotate-180" />
+                  </button>
+                </div>
+              )}
+
+              {/* Botones de Vista (Segmented Control) */}
+              <div className="flex items-center space-x-1">
+                {['Día', 'Semana', 'Mes', 'Año', 'Todos'].map(mode => (
+                  <button
+                    key={mode}
+                    onClick={() => { setViewMode(mode); setReferenceDate(new Date()); }}
+                    className={`relative px-4 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 ease-out overflow-hidden group outline-none ${
+                      viewMode === mode 
+                        ? 'text-white shadow-md cursor-default' 
+                        : 'text-gray-500 hover:text-gray-800 hover:bg-gray-200/50'
+                    }`}
+                  >
+                    {viewMode === mode && (
+                      <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl transition-opacity"></div>
+                    )}
+                    <span className="relative z-10">{mode}</span>
+                  </button>
+                ))}
+              </div>
+
+              {/* Refresh Button */}
+              <div className="pl-3 border-l border-gray-200/80 ml-1">
+                <button 
+                  onClick={fetchData} 
+                  className="p-2.5 bg-white border border-gray-200 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl shadow-sm transition-all outline-none"
+                  title="Actualizar datos manual"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                </button>
+              </div>
+            </div>
           </div>
 
           {loading ? (
@@ -294,13 +462,13 @@ function HorarioDeLaboratorio() {
                </svg>
                Cargando datos...
              </div>
-          ) : items.length === 0 ? (
+          ) : displayItems.length === 0 ? (
             <div className="text-center py-12 bg-gray-50 rounded-lg border border-dashed border-gray-300">
-              <p className="text-gray-500">No hay datos aún. Haz clic en "Agregar Nuevo" para empezar.</p>
+              <p className="text-gray-500">No se encontraron registros para {viewMode !== 'Todos' ? 'el período seleccionado' : 'mostrar'}.</p>
             </div>
           ) : (
             <div className="grid gap-6 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-              {items.map((item) => {
+              {displayItems.map((item) => {
                  const dia = item.content.dia;
                  const colorClass = dayColors[dia] || 'bg-gray-100 text-gray-800 ring-gray-200';
                  return (
@@ -342,6 +510,12 @@ function HorarioDeLaboratorio() {
                           <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-0.5">Actividad</p>
                           <p className="text-sm font-medium text-gray-600 line-clamp-2">{item.content.actividad}</p>
                         </div>
+                         
+                        {item.content.equipamiento && (
+                           <div className="mt-2 text-xs font-semibold text-orange-700 bg-orange-50 border border-orange-100 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg">
+                             <span>🛠</span> {item.content.equipamiento}
+                           </div>
+                        )}
                      </div>
                      
                      <div className="mt-5 pt-4 border-t border-gray-100 flex items-center justify-between">
@@ -399,6 +573,53 @@ function HorarioDeLaboratorio() {
                   />
                 </div>
               ))}
+
+              {/* Opciones de Recurrencia */}
+              {!editingItem && (
+                 <div className="pt-4 border-t border-gray-100 mt-4 relative">
+                   <label className="flex items-center cursor-pointer mb-5">
+                     <div className="relative">
+                       <input 
+                         type="checkbox" 
+                         checked={formData.es_recurrente || false} 
+                         onChange={e => handleInputChange('es_recurrente', e.target.checked)} 
+                         className="sr-only"
+                       />
+                       <div className={`block w-10 h-6 rounded-full transition-colors ${formData.es_recurrente ? 'bg-indigo-500' : 'bg-gray-200'}`}></div>
+                       <div className={`dot absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform ${formData.es_recurrente ? 'transform translate-x-4' : ''}`}></div>
+                     </div>
+                     <span className="ml-3 text-sm font-black text-gray-700 uppercase tracking-wide">Crear reserva recurrente (varios días)</span>
+                   </label>
+                   
+                   {formData.es_recurrente && (
+                     <div className="grid grid-cols-1 md:grid-cols-2 gap-5 bg-gradient-to-br from-indigo-50 to-blue-50/30 p-5 rounded-2xl border border-indigo-100/50 shadow-inner animate-[fadeIn_0.3s_ease-out]">
+                       <div>
+                         <label className="block text-xs font-bold text-indigo-800 uppercase tracking-widest mb-1.5 ml-1">Frecuencia</label>
+                         <select 
+                           value={formData.frecuencia || 'Semanal'} 
+                           onChange={e => handleInputChange('frecuencia', e.target.value)} 
+                           className="w-full px-4 py-3 bg-white border border-indigo-200 rounded-xl text-indigo-900 font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all hover:border-indigo-300"
+                         >
+                           <option value="Semanal">Cada Semana (Mismo Día)</option>
+                           <option value="Diario">Todos los Días (L - D)</option>
+                         </select>
+                       </div>
+                       <div>
+                         <label className="block text-xs font-bold text-indigo-800 uppercase tracking-widest mb-1.5 ml-1">Repetir hasta el día</label>
+                         <input 
+                           type="date" 
+                           value={formData.fecha_fin_recurrencia || ''} 
+                           onChange={e => handleInputChange('fecha_fin_recurrencia', e.target.value)} 
+                           className="w-full px-4 py-3 bg-white border border-indigo-200 rounded-xl text-indigo-900 font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all hover:border-indigo-300" 
+                           required={formData.es_recurrente} 
+                           min={formData.dia} 
+                         />
+                       </div>
+                     </div>
+                   )}
+                 </div>
+              )}
+
               <div className="pt-6 mt-6 border-t border-gray-100 flex gap-4 flex-row-reverse">
                 <button
                   type="submit"
